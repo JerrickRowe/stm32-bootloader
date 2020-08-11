@@ -25,7 +25,9 @@
  * Currently supported MCU families:
  *  - STM32L4
  */
-#define STM32L4
+//#define STM32L4
+
+#define STM32F4
 
 /** Check application checksum on startup */
 #define USE_CHECKSUM 0
@@ -36,6 +38,12 @@
 /** Automatically set vector table location before launching application */
 #define SET_VECTOR_TABLE 1
 
+#ifdef STM32L4
+#define OBL_RESET_IS_AVAILABLE	1
+#else
+#define OBL_RESET_IS_AVAILABLE	0
+#endif
+
 /** Clear reset flags
  *  - If enabled: bootloader clears reset flags. (This occurs only when OBL RST
  * flag is active.)
@@ -44,8 +52,9 @@
  */
 #define CLEAR_RESET_FLAGS 1
 
+
 /** Start address of application space in flash */
-#define APP_ADDRESS (uint32_t)0x08008000
+#define APP_ADDRESS (uint32_t)0x08080000
 
 /** End address of application space (address of last byte) */
 #define END_ADDRESS (uint32_t)0x080FFFFB
@@ -62,6 +71,8 @@
 /* Include the appropriate header file */
 #if defined(STM32L4)
 #include "stm32l4xx.h"
+#elif defined(STM32F4)
+#include "stm32f4xx.h"
 #else
 #error "Target MCU header file is not defined or unsupported."
 #endif

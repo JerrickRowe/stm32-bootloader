@@ -22,6 +22,13 @@
 #define BOOTLOADER_VERSION_PATCH 3 /*!< Patch version */
 #define BOOTLOADER_VERSION_RC    0 /*!< Release candidate version */
 
+#include "stm32f4xx_hal_flash.h"
+#define FLASH_FLAG_ALL_ERRORS	(FLASH_FLAG_EOP    | FLASH_FLAG_OPERR | FLASH_FLAG_WRPERR |\
+								 FLASH_FLAG_PGAERR | FLASH_FLAG_PGPERR| FLASH_FLAG_PGSERR )
+
+#define FLASH_SIZE	LL_GetFlashSize()
+#define FLASH_PAGE_SIZE		512
+
 /* Private typedef -----------------------------------------------------------*/
 typedef void (*pFunction)(void); /*!< Function pointer definition */
 

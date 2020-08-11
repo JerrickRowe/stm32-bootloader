@@ -6,3 +6,45 @@
 **/EWARM/**/List/
 **/EWARM/**/Obj/
 **/GCC/build/
+
+
+*.o
+*~
+*.sw*
+tags
+/.cproject
+/.project
+
+.vagrant/
+.idea/
+bin/
+build/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+osdk-core/advanced-sensing-*
+osdk-core/v1-1.0.0
+osdk-core/mo-protocol-*
+osdk-core/waypointv2-core*
+cmake-build-debug
+.vscode/
+
+*/Project/Objects/
+*/Project/Listings/
+
+*.dep
+*.d
+*.lst
+*.crf
+*.map
+*.uvguix*
+
+# *.uvprojx and *.uvoptx files is necessory for keil IDE
+# but should not be changed frequently (Every time you open the project it changes)
+# You shoud force commit *.uvprojx and *.uvoptx file when you actually modify project settings
+# or the modification will not be tracked.
+*.uvoptx
+*.uvprojx
+BC4Key.txt
+
