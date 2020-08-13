@@ -86,7 +86,7 @@
 
 /* MCU RAM information (to check whether flash contains valid application) */
 #define RAM_BASE SRAM1_BASE     /*!< Start address of RAM */
-#define RAM_SIZE SRAM1_SIZE_MAX /*!< RAM size in bytes */
+#define RAM_SIZE 0x1C000 /*!< RAM size in bytes */
 
 /* Enumerations --------------------------------------------------------------*/
 /** Bootloader error codes */

@@ -27,7 +27,7 @@
 								 FLASH_FLAG_PGAERR | FLASH_FLAG_PGPERR| FLASH_FLAG_PGSERR )
 
 #define FLASH_SIZE	LL_GetFlashSize()
-#define FLASH_PAGE_SIZE		512
+#define FLASH_PAGE_SIZE		512 
 
 /* Private typedef -----------------------------------------------------------*/
 typedef void (*pFunction)(void); /*!< Function pointer definition */
@@ -74,24 +74,26 @@ uint8_t Bootloader_Erase(void)
 
     if(NbrOfPages > FLASH_PAGE_NBPERBANK)
     {
-        pEraseInit.Banks     = FLASH_BANK_1;
-        pEraseInit.NbPages   = NbrOfPages % FLASH_PAGE_NBPERBANK;
-        pEraseInit.Page      = FLASH_PAGE_NBPERBANK - pEraseInit.NbPages;
-        pEraseInit.TypeErase = FLASH_TYPEERASE_PAGES;
-        status               = HAL_FLASHEx_Erase(&pEraseInit, &PageError);
+        pEraseInit.Banks        = FLASH_BANK_1;
+        pEraseInit.NbSectors    = NbrOfPages % FLASH_PAGE_NBPERBANK;
+        pEraseInit.Sector       = FLASH_PAGE_NBPERBANK - pEraseInit.NbSectors;
+        pEraseInit.TypeErase    = FLASH_TYPEERASE_SECTORS;
+		pEraseInit.VoltageRange = FLASH_VOLTAGE_RANGE_3;
+        status                  = HAL_FLASHEx_Erase(&pEraseInit, &PageError);
 
         NbrOfPages = FLASH_PAGE_NBPERBANK;
     }
-
+#if defined( FLASH_BANK_2 )
     if(status == HAL_OK)
     {
-        pEraseInit.Banks     = FLASH_BANK_2;
-        pEraseInit.NbPages   = NbrOfPages;
-        pEraseInit.Page      = FLASH_PAGE_NBPERBANK - pEraseInit.NbPages;
-        pEraseInit.TypeErase = FLASH_TYPEERASE_PAGES;
-        status               = HAL_FLASHEx_Erase(&pEraseInit, &PageError);
+        pEraseInit.Banks        = FLASH_BANK_2;
+        pEraseInit.NbSectors    = NbrOfPages;
+        pEraseInit.Sector       = FLASH_PAGE_NBPERBANK - pEraseInit.NbSectors;
+        pEraseInit.TypeErase    = FLASH_TYPEERASE_SECTORS;
+		pEraseInit.VoltageRange = FLASH_VOLTAGE_RANGE_3;
+        status                  = HAL_FLASHEx_Erase(&pEraseInit, &PageError);
     }
-
+#endif
     HAL_FLASH_Lock();
 
     return (status == HAL_OK) ? BL_OK : BL_ERASE_ERROR;
@@ -180,83 +182,83 @@ uint8_t Bootloader_GetProtectionStatus(void)
     FLASH_OBProgramInitTypeDef OBStruct   = {0};
     uint8_t                    protection = BL_PROTECTION_NONE;
 
-    HAL_FLASH_Unlock();
+//    HAL_FLASH_Unlock();
 
-    /* Bank 1 */
-    OBStruct.PCROPConfig = FLASH_BANK_1;
-    OBStruct.WRPArea     = OB_WRPAREA_BANK1_AREAA;
-    HAL_FLASHEx_OBGetConfig(&OBStruct);
-    /* PCROP */
-    if(OBStruct.PCROPEndAddr > OBStruct.PCROPStartAddr)
-    {
-        if(OBStruct.PCROPStartAddr >= APP_ADDRESS)
-        {
-            protection |= BL_PROTECTION_PCROP;
-        }
-    }
-    /* WRP Area_A */
-    if(OBStruct.WRPEndOffset > OBStruct.WRPStartOffset)
-    {
-        if((OBStruct.WRPStartOffset * FLASH_PAGE_SIZE + FLASH_BASE) >=
-           APP_ADDRESS)
-        {
-            protection |= BL_PROTECTION_WRP;
-        }
-    }
+//    /* Bank 1 */
+//    OBStruct.PCROPConfig = FLASH_BANK_1;
+//    OBStruct.WRPArea     = OB_WRPAREA_BANK1_AREAA;
+//    HAL_FLASHEx_OBGetConfig(&OBStruct);
+//    /* PCROP */
+//    if(OBStruct.PCROPEndAddr > OBStruct.PCROPStartAddr)
+//    {
+//        if(OBStruct.PCROPStartAddr >= APP_ADDRESS)
+//        {
+//            protection |= BL_PROTECTION_PCROP;
+//        }
+//    }
+//    /* WRP Area_A */
+//    if(OBStruct.WRPEndOffset > OBStruct.WRPStartOffset)
+//    {
+//        if((OBStruct.WRPStartOffset * FLASH_PAGE_SIZE + FLASH_BASE) >=
+//           APP_ADDRESS)
+//        {
+//            protection |= BL_PROTECTION_WRP;
+//        }
+//    }
 
-    OBStruct.WRPArea = OB_WRPAREA_BANK1_AREAB;
-    HAL_FLASHEx_OBGetConfig(&OBStruct);
-    /* WRP Area_B */
-    if(OBStruct.WRPEndOffset > OBStruct.WRPStartOffset)
-    {
-        if((OBStruct.WRPStartOffset * FLASH_PAGE_SIZE + FLASH_BASE) >=
-           APP_ADDRESS)
-        {
-            protection |= BL_PROTECTION_WRP;
-        }
-    }
+//    OBStruct.WRPArea = OB_WRPAREA_BANK1_AREAB;
+//    HAL_FLASHEx_OBGetConfig(&OBStruct);
+//    /* WRP Area_B */
+//    if(OBStruct.WRPEndOffset > OBStruct.WRPStartOffset)
+//    {
+//        if((OBStruct.WRPStartOffset * FLASH_PAGE_SIZE + FLASH_BASE) >=
+//           APP_ADDRESS)
+//        {
+//            protection |= BL_PROTECTION_WRP;
+//        }
+//    }
 
-    /* Bank 2 */
-    OBStruct.PCROPConfig = FLASH_BANK_2;
-    OBStruct.WRPArea     = OB_WRPAREA_BANK2_AREAA;
-    HAL_FLASHEx_OBGetConfig(&OBStruct);
-    /* PCROP */
-    if(OBStruct.PCROPEndAddr > OBStruct.PCROPStartAddr)
-    {
-        if(OBStruct.PCROPStartAddr >= APP_ADDRESS)
-        {
-            protection |= BL_PROTECTION_PCROP;
-        }
-    }
-    /* WRP Area_A */
-    if(OBStruct.WRPEndOffset > OBStruct.WRPStartOffset)
-    {
-        if((OBStruct.WRPStartOffset * FLASH_PAGE_SIZE + FLASH_BASE +
-            FLASH_PAGE_SIZE * FLASH_PAGE_NBPERBANK) >= APP_ADDRESS)
-        {
-            protection |= BL_PROTECTION_WRP;
-        }
-    }
+//    /* Bank 2 */
+//    OBStruct.PCROPConfig = FLASH_BANK_2;
+//    OBStruct.WRPArea     = OB_WRPAREA_BANK2_AREAA;
+//    HAL_FLASHEx_OBGetConfig(&OBStruct);
+//    /* PCROP */
+//    if(OBStruct.PCROPEndAddr > OBStruct.PCROPStartAddr)
+//    {
+//        if(OBStruct.PCROPStartAddr >= APP_ADDRESS)
+//        {
+//            protection |= BL_PROTECTION_PCROP;
+//        }
+//    }
+//    /* WRP Area_A */
+//    if(OBStruct.WRPEndOffset > OBStruct.WRPStartOffset)
+//    {
+//        if((OBStruct.WRPStartOffset * FLASH_PAGE_SIZE + FLASH_BASE +
+//            FLASH_PAGE_SIZE * FLASH_PAGE_NBPERBANK) >= APP_ADDRESS)
+//        {
+//            protection |= BL_PROTECTION_WRP;
+//        }
+//    }
 
-    OBStruct.WRPArea = OB_WRPAREA_BANK2_AREAB;
-    HAL_FLASHEx_OBGetConfig(&OBStruct);
-    /* WRP Area_B */
-    if(OBStruct.WRPEndOffset > OBStruct.WRPStartOffset)
-    {
-        if((OBStruct.WRPStartOffset * FLASH_PAGE_SIZE + FLASH_BASE +
-            FLASH_PAGE_SIZE * FLASH_PAGE_NBPERBANK) >= APP_ADDRESS)
-        {
-            protection |= BL_PROTECTION_WRP;
-        }
-    }
+//    OBStruct.WRPArea = OB_WRPAREA_BANK2_AREAB;
+//    HAL_FLASHEx_OBGetConfig(&OBStruct);
+//    /* WRP Area_B */
+//    if(OBStruct.WRPEndOffset > OBStruct.WRPStartOffset)
+//    {
+//        if((OBStruct.WRPStartOffset * FLASH_PAGE_SIZE + FLASH_BASE +
+//            FLASH_PAGE_SIZE * FLASH_PAGE_NBPERBANK) >= APP_ADDRESS)
+//        {
+//            protection |= BL_PROTECTION_WRP;
+//        }
+//    }
 
-    /* RDP */
-    if(OBStruct.RDPLevel != OB_RDP_LEVEL_0)
-    {
-        protection |= BL_PROTECTION_RDP;
-    }
+//    /* RDP */
+//    if(OBStruct.RDPLevel != OB_RDP_LEVEL_0)
+//    {
+//        protection |= BL_PROTECTION_RDP;
+//    }
 
-    HAL_FLASH_Lock();
+//    HAL_FLASH_Lock();
     return protection;
 }
 
@@ -270,67 +272,68 @@ uint8_t Bootloader_GetProtectionStatus(void)
 uint8_t Bootloader_ConfigProtection(uint32_t protection)
 {
     FLASH_OBProgramInitTypeDef OBStruct = {0};
-    HAL_StatusTypeDef          status   = HAL_ERROR;
+//    HAL_StatusTypeDef          status   = HAL_ERROR;
+    HAL_StatusTypeDef          status   = BL_OK;
 
-    status = HAL_FLASH_Unlock();
-    status |= HAL_FLASH_OB_Unlock();
+//    status = HAL_FLASH_Unlock();
+//    status |= HAL_FLASH_OB_Unlock();
 
-    /* Bank 1 */
-    OBStruct.WRPArea    = OB_WRPAREA_BANK1_AREAA;
-    OBStruct.OptionType = OPTIONBYTE_WRP;
-    if(protection & BL_PROTECTION_WRP)
-    {
-        /* Enable WRP protection for application space */
-        OBStruct.WRPStartOffset = (APP_ADDRESS - FLASH_BASE) / FLASH_PAGE_SIZE;
-        OBStruct.WRPEndOffset   = FLASH_PAGE_NBPERBANK - 1;
-    }
-    else
-    {
-        /* Remove WRP protection */
-        OBStruct.WRPStartOffset = 0xFF;
-        OBStruct.WRPEndOffset   = 0x00;
-    }
-    status |= HAL_FLASHEx_OBProgram(&OBStruct);
+//    /* Bank 1 */
+//    OBStruct.WRPArea    = OB_WRPAREA_BANK1_AREAA;
+//    OBStruct.OptionType = OPTIONBYTE_WRP;
+//    if(protection & BL_PROTECTION_WRP)
+//    {
+//        /* Enable WRP protection for application space */
+//        OBStruct.WRPStartOffset = (APP_ADDRESS - FLASH_BASE) / FLASH_PAGE_SIZE;
+//        OBStruct.WRPEndOffset   = FLASH_PAGE_NBPERBANK - 1;
+//    }
+//    else
+//    {
+//        /* Remove WRP protection */
+//        OBStruct.WRPStartOffset = 0xFF;
+//        OBStruct.WRPEndOffset   = 0x00;
+//    }
+//    status |= HAL_FLASHEx_OBProgram(&OBStruct);
 
-    /* Area B is not used */
-    OBStruct.WRPArea        = OB_WRPAREA_BANK1_AREAB;
-    OBStruct.OptionType     = OPTIONBYTE_WRP;
-    OBStruct.WRPStartOffset = 0xFF;
-    OBStruct.WRPEndOffset   = 0x00;
-    status |= HAL_FLASHEx_OBProgram(&OBStruct);
+//    /* Area B is not used */
+//    OBStruct.WRPArea        = OB_WRPAREA_BANK1_AREAB;
+//    OBStruct.OptionType     = OPTIONBYTE_WRP;
+//    OBStruct.WRPStartOffset = 0xFF;
+//    OBStruct.WRPEndOffset   = 0x00;
+//    status |= HAL_FLASHEx_OBProgram(&OBStruct);
 
-    /* Bank 2 */
-    OBStruct.WRPArea    = OB_WRPAREA_BANK2_AREAA;
-    OBStruct.OptionType = OPTIONBYTE_WRP;
-    if(protection & BL_PROTECTION_WRP)
-    {
-        /* Enable WRP protection for application space */
-        OBStruct.WRPStartOffset = 0x00;
-        OBStruct.WRPEndOffset   = FLASH_PAGE_NBPERBANK - 1;
-    }
-    else
-    {
-        /* Remove WRP protection */
-        OBStruct.WRPStartOffset = 0xFF;
-        OBStruct.WRPEndOffset   = 0x00;
-    }
-    status |= HAL_FLASHEx_OBProgram(&OBStruct);
+//    /* Bank 2 */
+//    OBStruct.WRPArea    = OB_WRPAREA_BANK2_AREAA;
+//    OBStruct.OptionType = OPTIONBYTE_WRP;
+//    if(protection & BL_PROTECTION_WRP)
+//    {
+//        /* Enable WRP protection for application space */
+//        OBStruct.WRPStartOffset = 0x00;
+//        OBStruct.WRPEndOffset   = FLASH_PAGE_NBPERBANK - 1;
+//    }
+//    else
+//    {
+//        /* Remove WRP protection */
+//        OBStruct.WRPStartOffset = 0xFF;
+//        OBStruct.WRPEndOffset   = 0x00;
+//    }
+//    status |= HAL_FLASHEx_OBProgram(&OBStruct);
 
-    /* Area B is not used */
-    OBStruct.WRPArea        = OB_WRPAREA_BANK2_AREAB;
-    OBStruct.OptionType     = OPTIONBYTE_WRP;
-    OBStruct.WRPStartOffset = 0xFF;
-    OBStruct.WRPEndOffset   = 0x00;
-    status |= HAL_FLASHEx_OBProgram(&OBStruct);
+//    /* Area B is not used */
+//    OBStruct.WRPArea        = OB_WRPAREA_BANK2_AREAB;
+//    OBStruct.OptionType     = OPTIONBYTE_WRP;
+//    OBStruct.WRPStartOffset = 0xFF;
+//    OBStruct.WRPEndOffset   = 0x00;
+//    status |= HAL_FLASHEx_OBProgram(&OBStruct);
 
-    if(status == HAL_OK)
-    {
-        /* Loading Flash Option Bytes - this generates a system reset. */
-        status |= HAL_FLASH_OB_Launch();
-    }
+//    if(status == HAL_OK)
+//    {
+//        /* Loading Flash Option Bytes - this generates a system reset. */
+//        status |= HAL_FLASH_OB_Launch();
+//    }
 
-    status |= HAL_FLASH_OB_Lock();
-    status |= HAL_FLASH_Lock();
+//    status |= HAL_FLASH_OB_Lock();
+//    status |= HAL_FLASH_Lock();
 
     return (status == HAL_OK) ? BL_OK : BL_OBP_ERROR;
 }

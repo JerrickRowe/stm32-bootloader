@@ -42,12 +42,12 @@ uint8_t BSP_SD_Init(void)
     }
 
     /* SD interface configuration */
-    hsd1.Instance                 = SDMMC1;
-    hsd1.Init.ClockEdge           = SDMMC_CLOCK_EDGE_RISING;
-    hsd1.Init.ClockBypass         = SDMMC_CLOCK_BYPASS_DISABLE;
-    hsd1.Init.ClockPowerSave      = SDMMC_CLOCK_POWER_SAVE_DISABLE;
-    hsd1.Init.BusWide             = SDMMC_BUS_WIDE_1B;
-    hsd1.Init.HardwareFlowControl = SDMMC_HARDWARE_FLOW_CONTROL_ENABLE;
+    hsd1.Instance                 = SDIO;
+    hsd1.Init.ClockEdge           = SDIO_CLOCK_EDGE_RISING;
+    hsd1.Init.ClockBypass         = SDIO_CLOCK_BYPASS_DISABLE;
+    hsd1.Init.ClockPowerSave      = SDIO_CLOCK_POWER_SAVE_DISABLE;
+    hsd1.Init.BusWide             = SDIO_BUS_WIDE_1B;
+    hsd1.Init.HardwareFlowControl = SDIO_HARDWARE_FLOW_CONTROL_ENABLE;
     hsd1.Init.ClockDiv            = 0;
 
     for(tries = 0; tries < 5; ++tries)
@@ -63,7 +63,7 @@ uint8_t BSP_SD_Init(void)
         }
 
         /* Enable wide operation */
-        if(HAL_SD_ConfigWideBusOperation(&hsd1, SDMMC_BUS_WIDE_4B) != HAL_OK)
+        if(HAL_SD_ConfigWideBusOperation(&hsd1, SDIO_BUS_WIDE_4B) != HAL_OK)
         {
             /* Retry */
             continue;

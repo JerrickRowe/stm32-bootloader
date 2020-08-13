@@ -22,97 +22,11 @@ Dialog DLL:      TCM.DLL V1.42.0.0
  
 <h2>Project:</h2>
 D:\WorkFolder_Jerrick\OWL\Bootloader\stm32-bootloader\projects\STM32F407-OWL\stm32-bootloader.uvprojx
-Project File Date:  08/11/2020
+Project File Date:  08/12/2020
 
 <h2>Output:</h2>
 *** Using Compiler 'V6.14', folder: 'C:\FastSoft\MDK\ARM\ARMCLANG\Bin'
 Build target 'Release'
-../../lib/stm32-bootloader/bootloader.c(78): error: no member named 'NbPages' in 'FLASH_EraseInitTypeDef'
-        pEraseInit.NbPages   = NbrOfPages % FLASH_PAGE_NBPERBANK;
-        ~~~~~~~~~~ ^
-../../lib/stm32-bootloader/bootloader.c(79): error: no member named 'Page' in 'FLASH_EraseInitTypeDef'
-        pEraseInit.Page      = FLASH_PAGE_NBPERBANK - pEraseInit.NbPages;
-        ~~~~~~~~~~ ^
-../../lib/stm32-bootloader/bootloader.c(79): error: no member named 'NbPages' in 'FLASH_EraseInitTypeDef'
-        pEraseInit.Page      = FLASH_PAGE_NBPERBANK - pEraseInit.NbPages;
-                                                      ~~~~~~~~~~ ^
-../../lib/stm32-bootloader/bootloader.c(80): error: use of undeclared identifier 'FLASH_TYPEERASE_PAGES'
-        pEraseInit.TypeErase = FLASH_TYPEERASE_PAGES;
-                               ^
-../../lib/stm32-bootloader/bootloader.c(88): error: use of undeclared identifier 'FLASH_BANK_2'
-        pEraseInit.Banks     = FLASH_BANK_2;
-                               ^
-../../lib/stm32-bootloader/bootloader.c(89): error: no member named 'NbPages' in 'FLASH_EraseInitTypeDef'
-        pEraseInit.NbPages   = NbrOfPages;
-        ~~~~~~~~~~ ^
-../../lib/stm32-bootloader/bootloader.c(90): error: no member named 'Page' in 'FLASH_EraseInitTypeDef'
-        pEraseInit.Page      = FLASH_PAGE_NBPERBANK - pEraseInit.NbPages;
-        ~~~~~~~~~~ ^
-../../lib/stm32-bootloader/bootloader.c(90): error: no member named 'NbPages' in 'FLASH_EraseInitTypeDef'
-        pEraseInit.Page      = FLASH_PAGE_NBPERBANK - pEraseInit.NbPages;
-                                                      ~~~~~~~~~~ ^
-../../lib/stm32-bootloader/bootloader.c(91): error: use of undeclared identifier 'FLASH_TYPEERASE_PAGES'
-        pEraseInit.TypeErase = FLASH_TYPEERASE_PAGES;
-                               ^
-../../lib/stm32-bootloader/bootloader.c(186): error: no member named 'PCROPConfig' in 'FLASH_OBProgramInitTypeDef'
-    OBStruct.PCROPConfig = FLASH_BANK_1;
-    ~~~~~~~~ ^
-../../lib/stm32-bootloader/bootloader.c(187): error: no member named 'WRPArea' in 'FLASH_OBProgramInitTypeDef'
-    OBStruct.WRPArea     = OB_WRPAREA_BANK1_AREAA;
-    ~~~~~~~~ ^
-../../lib/stm32-bootloader/bootloader.c(187): error: use of undeclared identifier 'OB_WRPAREA_BANK1_AREAA'
-    OBStruct.WRPArea     = OB_WRPAREA_BANK1_AREAA;
-                           ^
-../../lib/stm32-bootloader/bootloader.c(190): error: no member named 'PCROPEndAddr' in 'FLASH_OBProgramInitTypeDef'
-    if(OBStruct.PCROPEndAddr > OBStruct.PCROPStartAddr)
-       ~~~~~~~~ ^
-../../lib/stm32-bootloader/bootloader.c(190): error: no member named 'PCROPStartAddr' in 'FLASH_OBProgramInitTypeDef'
-    if(OBStruct.PCROPEndAddr > OBStruct.PCROPStartAddr)
-                               ~~~~~~~~ ^
-../../lib/stm32-bootloader/bootloader.c(192): error: no member named 'PCROPStartAddr' in 'FLASH_OBProgramInitTypeDef'
-        if(OBStruct.PCROPStartAddr >= APP_ADDRESS)
-           ~~~~~~~~ ^
-../../lib/stm32-bootloader/bootloader.c(198): error: no member named 'WRPEndOffset' in 'FLASH_OBProgramInitTypeDef'
-    if(OBStruct.WRPEndOffset > OBStruct.WRPStartOffset)
-       ~~~~~~~~ ^
-../../lib/stm32-bootloader/bootloader.c(198): error: no member named 'WRPStartOffset' in 'FLASH_OBProgramInitTypeDef'
-    if(OBStruct.WRPEndOffset > OBStruct.WRPStartOffset)
-                               ~~~~~~~~ ^
-../../lib/stm32-bootloader/bootloader.c(200): error: no member named 'WRPStartOffset' in 'FLASH_OBProgramInitTypeDef'
-        if((OBStruct.WRPStartOffset * FLASH_PAGE_SIZE + FLASH_BASE) >=
-            ~~~~~~~~ ^
-../../lib/stm32-bootloader/bootloader.c(207): error: no member named 'WRPArea' in 'FLASH_OBProgramInitTypeDef'
-    OBStruct.WRPArea = OB_WRPAREA_BANK1_AREAB;
-    ~~~~~~~~ ^
-fatal error: too many errors emitted, stopping now [-ferror-limit=]
-20 errors generated.
-compiling bootloader.c...
-source/main.c(536): error: use of undeclared identifier 'PWR_REGULATOR_VOLTAGE_SCALE1'
-    if(HAL_PWREx_ControlVoltageScaling(PWR_REGULATOR_VOLTAGE_SCALE1) != HAL_OK)
-                                       ^
-1 error generated.
-compiling main.c...
-source/bsp_driver_sd_stm32f4xx.c(45): error: use of undeclared identifier 'SDMMC1'
-    hsd1.Instance                 = SDMMC1;
-                                    ^
-source/bsp_driver_sd_stm32f4xx.c(46): error: use of undeclared identifier 'SDMMC_CLOCK_EDGE_RISING'
-    hsd1.Init.ClockEdge           = SDMMC_CLOCK_EDGE_RISING;
-                                    ^
-source/bsp_driver_sd_stm32f4xx.c(47): error: use of undeclared identifier 'SDMMC_CLOCK_BYPASS_DISABLE'
-    hsd1.Init.ClockBypass         = SDMMC_CLOCK_BYPASS_DISABLE;
-                                    ^
-source/bsp_driver_sd_stm32f4xx.c(48): error: use of undeclared identifier 'SDMMC_CLOCK_POWER_SAVE_DISABLE'
-    hsd1.Init.ClockPowerSave      = SDMMC_CLOCK_POWER_SAVE_DISABLE;
-                                    ^
-source/bsp_driver_sd_stm32f4xx.c(49): error: use of undeclared identifier 'SDMMC_BUS_WIDE_1B'
-    hsd1.Init.BusWide             = SDMMC_BUS_WIDE_1B;
-                                    ^
-source/bsp_driver_sd_stm32f4xx.c(50): error: use of undeclared identifier 'SDMMC_HARDWARE_FLOW_CONTROL_ENABLE'
-    hsd1.Init.HardwareFlowControl = SDMMC_HARDWARE_FLOW_CONTROL_ENABLE;
-                                    ^
-source/bsp_driver_sd_stm32f4xx.c(66): error: use of undeclared identifier 'SDMMC_BUS_WIDE_4B'
-        if(HAL_SD_ConfigWideBusOperation(&hsd1, SDMMC_BUS_WIDE_4B) != HAL_OK)
-                                                ^
 source/bsp_driver_sd_stm32f4xx.c(461): error: use of undeclared identifier 'DMA2_Channel5'
     hdma_rx.Instance                 = DMA2_Channel5;
                                        ^
@@ -143,9 +57,9 @@ source/bsp_driver_sd_stm32f4xx.c(522): error: use of undeclared identifier 'DMA2
 source/bsp_driver_sd_stm32f4xx.c(523): error: use of undeclared identifier 'DMA2_Channel5_IRQn'
     HAL_NVIC_EnableIRQ(DMA2_Channel5_IRQn);
                        ^
-17 errors generated.
+10 errors generated.
 compiling bsp_driver_sd_stm32f4xx.c...
-".\Objects\stm32-bootloader.axf" - 37 Error(s), 0 Warning(s).
+".\Objects\stm32-bootloader.axf" - 10 Error(s), 0 Warning(s).
 
 <h2>Software Packages used:</h2>
 
