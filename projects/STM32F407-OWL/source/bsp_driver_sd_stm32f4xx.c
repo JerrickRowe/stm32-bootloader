@@ -458,8 +458,8 @@ static HAL_StatusTypeDef SD_DMAConfigRx(SD_HandleTypeDef* hsd)
     HAL_StatusTypeDef        status = HAL_ERROR;
 
     /* Configure DMA Rx parameters */
-    hdma_rx.Instance                 = DMA2_Channel5;
-    hdma_rx.Init.Request             = DMA_REQUEST_7;
+    hdma_rx.Instance                 = DMA2_Stream3;
+//    hdma_rx.Init.Request             = DMA_REQUEST_7;
     hdma_rx.Init.Direction           = DMA_PERIPH_TO_MEMORY;
     hdma_rx.Init.PeriphInc           = DMA_PINC_DISABLE;
     hdma_rx.Init.MemInc              = DMA_MINC_ENABLE;
@@ -480,8 +480,8 @@ static HAL_StatusTypeDef SD_DMAConfigRx(SD_HandleTypeDef* hsd)
     status = HAL_DMA_Init(&hdma_rx);
 
     /* NVIC configuration for DMA transfer complete interrupt */
-    HAL_NVIC_SetPriority(DMA2_Channel5_IRQn, SD_DMA_IRQ_PRIO, 0);
-    HAL_NVIC_EnableIRQ(DMA2_Channel5_IRQn);
+    HAL_NVIC_SetPriority(DMA2_Stream3_IRQn, SD_DMA_IRQ_PRIO, 0);
+    HAL_NVIC_EnableIRQ(DMA2_Stream3_IRQn);
 
     return status;
 }
@@ -497,8 +497,8 @@ static HAL_StatusTypeDef SD_DMAConfigTx(SD_HandleTypeDef* hsd)
     HAL_StatusTypeDef        status;
 
     /* Configure DMA Tx parameters */
-    hdma_tx.Instance                 = DMA2_Channel5;
-    hdma_tx.Init.Request             = DMA_REQUEST_7;
+    hdma_tx.Instance                 = DMA2_Stream3;
+//    hdma_tx.Init.Request             = DMA_REQUEST_7;
     hdma_tx.Init.Direction           = DMA_MEMORY_TO_PERIPH;
     hdma_tx.Init.PeriphInc           = DMA_PINC_DISABLE;
     hdma_tx.Init.MemInc              = DMA_MINC_ENABLE;
@@ -519,8 +519,8 @@ static HAL_StatusTypeDef SD_DMAConfigTx(SD_HandleTypeDef* hsd)
     status = HAL_DMA_Init(&hdma_tx);
 
     /* NVIC configuration for DMA transfer complete interrupt */
-    HAL_NVIC_SetPriority(DMA2_Channel5_IRQn, SD_DMA_IRQ_PRIO, 0);
-    HAL_NVIC_EnableIRQ(DMA2_Channel5_IRQn);
+    HAL_NVIC_SetPriority(DMA2_Stream3_IRQn, SD_DMA_IRQ_PRIO, 0);
+    HAL_NVIC_EnableIRQ(DMA2_Stream3_IRQn);
 
     return status;
 }

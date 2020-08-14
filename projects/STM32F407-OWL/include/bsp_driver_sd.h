@@ -3,6 +3,7 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f4xx_hal.h"
+#include "stm32f4xx_hal_sd.h"
 
 /* Exported types ------------------------------------------------------------*/
 #define BSP_SD_CardInfo HAL_SD_CardInfoTypeDef

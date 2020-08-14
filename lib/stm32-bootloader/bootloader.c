@@ -22,7 +22,10 @@
 #define BOOTLOADER_VERSION_PATCH 3 /*!< Patch version */
 #define BOOTLOADER_VERSION_RC    0 /*!< Release candidate version */
 
+#include "stm32f4xx_hal.h"
 #include "stm32f4xx_hal_flash.h"
+#include "stm32f4xx_hal_rcc.h"
+#include "stm32f4xx_ll_utils.h"
 #define FLASH_FLAG_ALL_ERRORS	(FLASH_FLAG_EOP    | FLASH_FLAG_OPERR | FLASH_FLAG_WRPERR |\
 								 FLASH_FLAG_PGAERR | FLASH_FLAG_PGPERR| FLASH_FLAG_PGSERR )
 
@@ -44,7 +47,7 @@ static uint32_t flash_ptr = APP_ADDRESS;
 uint8_t Bootloader_Init(void)
 {
     __HAL_RCC_SYSCFG_CLK_ENABLE();
-    __HAL_RCC_FLASH_CLK_ENABLE();
+    // __HAL_RCC_FLASH_CLK_ENABLE();
 
     /* Clear flash flags */
     HAL_FLASH_Unlock();

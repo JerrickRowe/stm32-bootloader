@@ -28,4 +28,6 @@
 
 #define RTE_DEVICE_HAL_DMA
 
+#define RTE_DEVICE_HAL_USART
+
 #endif /* RTE_COMPONENTS_H */

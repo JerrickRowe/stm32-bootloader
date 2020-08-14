@@ -11,6 +11,13 @@
 *.o
 *~
 *.sw*
+*.scvd
+*.htm
+*.lnp
+*.sct
+*.iex
+*.bak
+
 tags
 /.cproject
 /.project

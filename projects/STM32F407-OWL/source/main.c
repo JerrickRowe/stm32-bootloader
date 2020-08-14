@@ -16,9 +16,12 @@
 #include "stm32f4xx.h"
 #include "stm32f4xx_ll_rcc.h"
 #include "stm32f4xx_hal_rcc.h"
+#include "stm32f4xx_hal_dma.h"
+#include "stm32f4xx_hal_usart.h"
 #include "main.h"
 #include "bootloader.h"
 #include "fatfs.h"
+#include <stdio.h>
 
 /* Private variables ---------------------------------------------------------*/
 static uint8_t BTNcounter = 0;
@@ -34,6 +37,8 @@ uint8_t SD_Init(void);
 void    SD_DeInit(void);
 void    SD_Eject(void);
 void    GPIO_Init(void);
+void    Console_Init(void);
+void    Console_DeInit(void);
 void    GPIO_DeInit(void);
 void    SystemClock_Config(void);
 void    Error_Handler(void);
@@ -43,9 +48,10 @@ void    print(const char* str);
 int main(void)
 {
     HAL_Init();
-    SystemClock_Config();
     GPIO_Init();
 
+	Console_Init();
+	
     LED_ALL_ON();
     print("\nPower up, Boot started.");
     HAL_Delay(500);
@@ -471,6 +477,48 @@ void GPIO_DeInit(void)
     __HAL_RCC_GPIOC_CLK_DISABLE();
 }
 
+
+/*** Console Configuration ***/
+static USART_HandleTypeDef console_usart_handle;
+void Console_Init(void)
+{
+	USART_HandleTypeDef *handle = &console_usart_handle;
+	RCC_PeriphCLKInitTypeDef clk_init;
+	GPIO_InitTypeDef GPIO_InitStructure;
+	
+	__HAL_RCC_GPIOD_CLK_ENABLE();
+	__HAL_RCC_USART2_CLK_ENABLE();
+	
+	handle->Instance = USART2;
+	handle->State = HAL_USART_STATE_RESET;
+	handle->Init.BaudRate = 921600;
+	handle->Init.StopBits = USART_STOPBITS_1;
+	handle->Init.WordLength = USART_WORDLENGTH_8B;
+	handle->Init.Parity = USART_PARITY_NONE;
+	handle->Init.Mode = USART_MODE_TX_RX;
+	HAL_USART_Init(&console_usart_handle);
+	
+	
+	GPIO_InitStructure.Pin   = GPIO_PIN_5;	// Tx
+	GPIO_InitStructure.Mode  = GPIO_MODE_AF_PP;
+	GPIO_InitStructure.Speed = GPIO_SPEED_FAST;
+	GPIO_InitStructure.Alternate = GPIO_AF7_USART2;
+	GPIO_InitStructure.Pull  = GPIO_PULLUP;
+	HAL_GPIO_Init( GPIOD, &GPIO_InitStructure );
+	
+	GPIO_InitStructure.Pin   = GPIO_PIN_6;	// Rx
+	GPIO_InitStructure.Mode  = GPIO_MODE_AF_OD;
+	GPIO_InitStructure.Speed = GPIO_SPEED_FAST;
+	GPIO_InitStructure.Alternate = GPIO_AF7_USART2;
+	GPIO_InitStructure.Pull  = GPIO_PULLUP;
+	HAL_GPIO_Init( GPIOD, &GPIO_InitStructure );
+}
+
+void Console_DeInit(void)
+{
+	
+}
+
 /*** System Clock Configuration ***/
 void SystemClock_Config(void)
 {
@@ -487,6 +535,9 @@ void SystemClock_Config(void)
     RCC_OscInitStruct.PLL.PLLN            = 336;
     RCC_OscInitStruct.PLL.PLLP            = 2;
     RCC_OscInitStruct.PLL.PLLQ            = 7;
+	
+	RCC_OscInitStruct.HSEState            = RCC_HSE_ON;
+	RCC_OscInitStruct.OscillatorType      = RCC_OSCILLATORTYPE_HSE;
 #elif defined(STM32L4)
     RCC_OscInitStruct.OscillatorType      = RCC_OSCILLATORTYPE_MSI;
     RCC_OscInitStruct.MSIState            = RCC_MSI_ON;
@@ -509,11 +560,11 @@ void SystemClock_Config(void)
     RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK |
                                   RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
     RCC_ClkInitStruct.SYSCLKSource   = RCC_SYSCLKSOURCE_PLLCLK;
-    RCC_ClkInitStruct.AHBCLKDivider  = RCC_SYSCLK_DIV1;
-    RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
-    RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
+    RCC_ClkInitStruct.AHBCLKDivider  = LL_RCC_SYSCLK_DIV_1;
+    RCC_ClkInitStruct.APB1CLKDivider = LL_RCC_APB1_DIV_4;
+    RCC_ClkInitStruct.APB2CLKDivider = LL_RCC_APB2_DIV_2;
 
-    if(HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK)
+    if(HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_4) != HAL_OK)
     {
         Error_Handler();
     }
@@ -527,10 +578,10 @@ void SystemClock_Config(void)
 //    PeriphClkInit.PLLSAI1.PLLSAI1Q        = RCC_PLLQ_DIV2;
 //    PeriphClkInit.PLLSAI1.PLLSAI1R        = RCC_PLLR_DIV2;
 //    PeriphClkInit.PLLSAI1.PLLSAI1ClockOut = RCC_PLLSAI1_48M2CLK;
-    if(HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
-    {
-        Error_Handler();
-    }
+//    if(HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
+//    {
+//        Error_Handler();
+//    }
 
     /* Configure the main internal regulator output voltage */
     if(HAL_PWREx_ControlVoltageScaling(PWR_REGULATOR_VOLTAGE_SCALE1) != HAL_OK)
@@ -547,6 +598,8 @@ void SystemClock_Config(void)
 /*** HAL MSP init ***/
 void HAL_MspInit(void)
 {
+	SystemClock_Config();
+	
     __HAL_RCC_SYSCFG_CLK_ENABLE();
     __HAL_RCC_PWR_CLK_ENABLE();
 
@@ -561,11 +614,23 @@ void HAL_MspInit(void)
     HAL_NVIC_SetPriority(SysTick_IRQn, 0, 0);
 }
 
+
+
+int fputc( int ch, FILE *fp ){
+	uint8_t data = (uint8_t)ch;
+	fp = NULL;
+	HAL_USART_Transmit( &console_usart_handle, &data, 1, 100 );
+	return (ch);
+}
+
+
 /*** Debug ***/
 void print(const char* str)
 {
 #if(USE_SWO_TRACE)
     puts(str);
+#else
+	printf( "%s\r\n", str );
 #endif
 }
 
@@ -574,7 +639,7 @@ void print(const char* str)
  * @param  None
  * @retval None
  */
-void Error_Handler(void)
+_ARMABI_NORETURN void Error_Handler(void)
 {
     while(1)
     {
