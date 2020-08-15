@@ -21,7 +21,9 @@
 #include "main.h"
 #include "bootloader.h"
 #include "fatfs.h"
+#include "led.h"
 #include <stdio.h>
+
 
 /* Private variables ---------------------------------------------------------*/
 static uint8_t BTNcounter = 0;
@@ -52,11 +54,11 @@ int main(void)
 
 	Console_Init();
 	
-    LED_ALL_ON();
+	led_init();
     print("\nPower up, Boot started.");
-    HAL_Delay(500);
-    LED_ALL_OFF();
 
+	led_allon();
+	
 #if OBL_RESET_IS_AVAILABLE
     /* Check system reset flags */
     if(__HAL_RCC_GET_FLAG(RCC_FLAG_OBLRST))
@@ -163,16 +165,14 @@ int main(void)
 
     /* No application found */
     print("No application in flash.");
+	
+	Bootloader_JumpToApplication();
     while(1)
     {
-        LED_R_ON();
+        setAllPixelColor( 255,255,255 );
         HAL_Delay(150);
-        LED_R_OFF();
+        setAllPixelColor( 0,0,0 );
         HAL_Delay(150);
-        LED_R_ON();
-        HAL_Delay(150);
-        LED_R_OFF();
-        HAL_Delay(1050);
     }
 }
 

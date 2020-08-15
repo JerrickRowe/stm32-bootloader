@@ -438,7 +438,7 @@ void Bootloader_JumpToApplication(void)
 
     __set_MSP(*(__IO uint32_t*)APP_ADDRESS);
     Jump();
-}
+}	
 
 /**
  * @brief  This function performs the jump to the MCU System Memory (ST
