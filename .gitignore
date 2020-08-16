@@ -51,7 +51,7 @@ cmake-build-debug
 # but should not be changed frequently (Every time you open the project it changes)
 # You shoud force commit *.uvprojx and *.uvoptx file when you actually modify project settings
 # or the modification will not be tracked.
-*.uvoptx
-*.uvprojx
+# *.uvoptx
+# *.uvprojx
 BC4Key.txt
 

@@ -54,13 +54,13 @@
 
 
 /** Start address of application space in flash */
-#define APP_ADDRESS (uint32_t)0x08008000
+#define APP_ADDRESS (uint32_t)0x08010000
 
 /** End address of application space (address of last byte) */
-#define END_ADDRESS (uint32_t)0x08081FFF
+#define END_ADDRESS (uint32_t)0x08083FFF
 
 /** Start address of application checksum in flash */
-#define CRC_ADDRESS (uint32_t)0x08082000
+#define CRC_ADDRESS (uint32_t)0x080F8000
 
 /** Address of System Memory (ST Bootloader) */
 #define SYSMEM_ADDRESS (uint32_t)0x1FFF0000

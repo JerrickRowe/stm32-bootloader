@@ -102,7 +102,7 @@ int main(void)
         {
             LED_G_TG();
         }
-        else if(BTNcounter == 40)
+        else if(BTNcounter == 40) 
         {
             LED_G_OFF();
             LED_Y_ON();
