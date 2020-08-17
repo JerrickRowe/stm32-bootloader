@@ -17,6 +17,9 @@
 *.sct
 *.iex
 *.bak
+*.axf
+*.d
+**/Objects/
 
 tags
 /.cproject
