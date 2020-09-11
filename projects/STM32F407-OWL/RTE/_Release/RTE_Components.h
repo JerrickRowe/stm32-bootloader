@@ -30,4 +30,6 @@
 
 #define RTE_DEVICE_HAL_USART
 
+#define RTE_DEVICE_HAL_CRC
+
 #endif /* RTE_COMPONENTS_H */

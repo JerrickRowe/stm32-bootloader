@@ -24,6 +24,7 @@
 
 #include "stm32f4xx_hal.h"
 #include "stm32f4xx_hal_flash.h"
+#include "stm32f4xx_hal_flash_ex.h"
 #include "stm32f4xx_hal_rcc.h"
 #include "stm32f4xx_ll_utils.h"
 #define FLASH_FLAG_ALL_ERRORS	(FLASH_FLAG_EOP    | FLASH_FLAG_OPERR | FLASH_FLAG_WRPERR |\
@@ -32,12 +33,15 @@
 #define FLASH_SIZE	LL_GetFlashSize()
 #define FLASH_PAGE_SIZE		512 
 
+
 /* Private typedef -----------------------------------------------------------*/
 typedef void (*pFunction)(void); /*!< Function pointer definition */
 
 /* Private variables ---------------------------------------------------------*/
 /** Private variable for tracking flashing progress */
-static uint32_t flash_ptr = APP_ADDRESS;
+volatile static uint32_t flash_ptr = APP_ADDRESS;
+volatile static uint32_t  JumpAddress; 
+volatile static pFunction Jump; 
 
 /**
  * @brief  This function initializes bootloader and flash.
@@ -112,11 +116,20 @@ uint8_t Bootloader_Erase(void)
 uint8_t Bootloader_FlashBegin(void)
 {
     /* Reset flash destination address */
-    flash_ptr = APP_ADDRESS;
+    flash_ptr = APP1_ADDRESS;
 
     /* Unlock flash */
     HAL_FLASH_Unlock();
-
+	
+	FLASH_EraseInitTypeDef EraseInitStruct;
+	EraseInitStruct.TypeErase = FLASH_TYPEERASE_SECTORS;
+	EraseInitStruct.Banks = FLASH_BANK_1;
+	EraseInitStruct.Sector = FLASH_SECTOR_5;
+	EraseInitStruct.NbSectors = 3;
+	EraseInitStruct.VoltageRange = FLASH_VOLTAGE_RANGE_3;
+	uint32_t SectorError;
+	HAL_FLASHEx_Erase( &EraseInitStruct, &SectorError );
+	
     return BL_OK;
 }
 
@@ -131,12 +144,12 @@ uint8_t Bootloader_FlashBegin(void)
  */
 uint8_t Bootloader_FlashNext(uint64_t data)
 {
-    if(!(flash_ptr <= (FLASH_BASE + FLASH_SIZE - 8)) ||
-       (flash_ptr < APP_ADDRESS))
-    {
-        HAL_FLASH_Lock();
-        return BL_WRITE_ERROR;
-    }
+//    if(!(flash_ptr <= (FLASH_BASE + FLASH_SIZE - 8)) ||
+//       (flash_ptr < APP1_ADDRESS))
+//    {
+//        HAL_FLASH_Lock();
+//        return BL_WRITE_ERROR;
+//    }
 
     if(HAL_FLASH_Program(FLASH_TYPEPROGRAM_DOUBLEWORD, flash_ptr, data) ==
        HAL_OK)
@@ -145,7 +158,7 @@ uint8_t Bootloader_FlashNext(uint64_t data)
         if(*(uint64_t*)flash_ptr != data)
         {
             /* Flash content doesn't match source content */
-            HAL_FLASH_Lock();
+//            HAL_FLASH_Lock();
             return BL_WRITE_ERROR;
         }
         /* Increment Flash destination address */
@@ -154,12 +167,48 @@ uint8_t Bootloader_FlashNext(uint64_t data)
     else
     {
         /* Error occurred while writing data into Flash */
-        HAL_FLASH_Lock();
+//        HAL_FLASH_Lock();
         return BL_WRITE_ERROR;
     }
 
     return BL_OK;
 }
+
+
+/**
+ * @brief  Program 32bit data into flash: this function writes an 4byte (32bit)
+ *         data chunk into the flash and increments the data pointer.
+ * @see    README for futher information
+ * @param  data: 32bit data chunk to be written into flash
+ * @return Bootloader error code ::eBootloaderErrorCodes
+ * @retval BL_OK: upon success
+ * @retval BL_WRITE_ERROR: upon failure
+ */
+uint8_t Bootloader_FlashNextWord(uint32_t data)
+{
+    if(HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, flash_ptr, data) ==
+       HAL_OK)
+    {
+        /* Check the written value */
+        if(*(uint32_t*)flash_ptr != data)
+        {
+            /* Flash content doesn't match source content */
+//            HAL_FLASH_Lock();
+            return BL_WRITE_ERROR;
+        }
+        /* Increment Flash destination address */
+        flash_ptr += 4;
+    }
+    else
+    {
+        /* Error occurred while writing data into Flash */
+//        HAL_FLASH_Lock();
+        return BL_WRITE_ERROR;
+    }
+
+    return BL_OK;
+}
+
 
 /**
  * @brief  Finish flash programming: this function finalizes the flash
@@ -371,11 +420,7 @@ uint8_t Bootloader_VerifyChecksum(void)
 
     __HAL_RCC_CRC_CLK_ENABLE();
     CrcHandle.Instance                     = CRC;
-    CrcHandle.Init.DefaultPolynomialUse    = DEFAULT_POLYNOMIAL_ENABLE;
-    CrcHandle.Init.DefaultInitValueUse     = DEFAULT_INIT_VALUE_ENABLE;
-    CrcHandle.Init.InputDataInversionMode  = CRC_INPUTDATA_INVERSION_NONE;
-    CrcHandle.Init.OutputDataInversionMode = CRC_OUTPUTDATA_INVERSION_DISABLE;
-    CrcHandle.InputDataFormat              = CRC_INPUTDATA_FORMAT_WORDS;
+    CrcHandle.State                        = HAL_CRC_STATE_RESET;
     if(HAL_CRC_Init(&CrcHandle) != HAL_OK)
     {
         return BL_CHKS_ERROR;
@@ -395,6 +440,83 @@ uint8_t Bootloader_VerifyChecksum(void)
     return BL_CHKS_ERROR;
 }
 
+
+/**
+ * @brief  This function verifies the checksum of application located in flash.
+ *         If ::USE_CHECKSUM configuration parameter is disabled then the
+ *         function always returns an error code.
+ * @return Bootloader error code ::eBootloaderErrorCodes
+ * @retval BL_OK: if calculated checksum matches the application checksum
+ * @retval BL_CHKS_ERROR: upon checksum mismatch or when ::USE_CHECKSUM is
+ *         disabled
+ */
+uint8_t Bootloader_IsApp1ChecksumValid(void)
+{
+#if(USE_CHECKSUM)
+    CRC_HandleTypeDef CrcHandle;
+    volatile uint32_t calculatedCrc = 0;
+
+    __HAL_RCC_CRC_CLK_ENABLE();
+    CrcHandle.Instance                     = CRC;
+    CrcHandle.State                        = HAL_CRC_STATE_RESET;	
+    if(HAL_CRC_Init(&CrcHandle) != HAL_OK)
+    {
+        return BL_CHKS_ERROR;
+    }
+
+    calculatedCrc =
+        HAL_CRC_Calculate(&CrcHandle, (uint32_t*)APP1_ADDRESS, APP1_SIZE/4);
+
+    __HAL_RCC_CRC_FORCE_RESET();
+    __HAL_RCC_CRC_RELEASE_RESET();
+
+    if((*(uint32_t*)APP1_CRC_ADDR) == calculatedCrc)
+    {
+        return BL_OK;
+    }
+#endif
+    return BL_CHKS_ERROR;
+}
+
+
+/**
+ * @brief  This function verifies the checksum of application located in flash.
+ *         If ::USE_CHECKSUM configuration parameter is disabled then the
+ *         function always returns an error code.
+ * @return Bootloader error code ::eBootloaderErrorCodes
+ * @retval BL_OK: if calculated checksum matches the application checksum
+ * @retval BL_CHKS_ERROR: upon checksum mismatch or when ::USE_CHECKSUM is
+ *         disabled
+ */
+uint8_t Bootloader_IsApp2ChecksumValid(void)
+{
+#if(USE_CHECKSUM)
+    CRC_HandleTypeDef CrcHandle;
+    volatile uint32_t calculatedCrc = 0;
+
+    __HAL_RCC_CRC_CLK_ENABLE();
+    CrcHandle.Instance                     = CRC;
+    CrcHandle.State                        = HAL_CRC_STATE_RESET;
+    if(HAL_CRC_Init(&CrcHandle) != HAL_OK)
+    {
+        return BL_CHKS_ERROR;
+    }
+
+    calculatedCrc =
+        HAL_CRC_Calculate(&CrcHandle, (uint32_t*)APP2_ADDRESS, APP2_SIZE/4);
+
+    __HAL_RCC_CRC_FORCE_RESET();
+    __HAL_RCC_CRC_RELEASE_RESET();
+
+    if((*(uint32_t*)APP2_CRC_ADDR) == calculatedCrc)
+    {
+        return BL_OK;
+    }
+#endif
+    return BL_CHKS_ERROR;
+}
+
+
 /**
  * @brief  This function checks whether a valid application exists in flash.
  *         The check is performed by checking the very first DWORD (4 bytes) of
@@ -411,6 +533,43 @@ uint8_t Bootloader_CheckForApplication(void)
                                                                 : BL_NO_APP;
 }
 
+
+
+/**
+ * @brief  This function checks whether a valid application exists in flash.
+ *         The check is performed by checking the very first DWORD (4 bytes) of
+ *         the application firmware. In case of a valid application, this DWORD
+ *         must represent the initialization location of stack pointer - which
+ *         must be within the boundaries of RAM.
+ * @return Bootloader error code ::eBootloaderErrorCodes
+ * @retval BL_OK: if first DWORD represents a valid stack pointer location
+ * @retval BL_NO_APP: first DWORD value is out of RAM boundaries
+ */
+uint8_t Bootloader_CheckForApp1(void)
+{
+    return (((*(uint32_t*)APP1_ADDRESS) - RAM_BASE) <= RAM_SIZE) ? BL_OK
+                                                                 : BL_NO_APP;
+}
+
+
+/**
+ * @brief  This function checks whether a valid application exists in flash.
+ *         The check is performed by checking the very first DWORD (4 bytes) of
+ *         the application firmware. In case of a valid application, this DWORD
+ *         must represent the initialization location of stack pointer - which
+ *         must be within the boundaries of RAM.
+ * @return Bootloader error code ::eBootloaderErrorCodes
+ * @retval BL_OK: if first DWORD represents a valid stack pointer location
+ * @retval BL_NO_APP: first DWORD value is out of RAM boundaries
+ */
+uint8_t Bootloader_CheckForApp2(void)
+{
+    return (((*(uint32_t*)APP2_ADDRESS) - RAM_BASE) <= RAM_SIZE) ? BL_OK
+                                                                 : BL_NO_APP;
+}
+
+
+
 /**
  * @brief  This function performs the jump to the user application in flash.
  * @details The function carries out the following operations:
@@ -422,23 +581,69 @@ uint8_t Bootloader_CheckForApplication(void)
  */
 void Bootloader_JumpToApplication(void)
 {
-    uint32_t  JumpAddress = *(__IO uint32_t*)(APP_ADDRESS + 4);
-    pFunction Jump        = (pFunction)JumpAddress;
-
     HAL_RCC_DeInit();
     HAL_DeInit();
-
     SysTick->CTRL = 0;
     SysTick->LOAD = 0;
     SysTick->VAL  = 0;
-
 #if(SET_VECTOR_TABLE)
     SCB->VTOR = APP_ADDRESS;
 #endif
-
     __set_MSP(*(__IO uint32_t*)APP_ADDRESS);
+    JumpAddress = *(__IO uint32_t*)(APP_ADDRESS + 4);
+	Jump        = (pFunction)JumpAddress;
     Jump();
-}	
+}
+
+/**
+ * @brief  This function performs the jump to the user application in flash.
+ * @details The function carries out the following operations:
+ *  - De-initialize the clock and peripheral configuration
+ *  - Stop the systick
+ *  - Set the vector table location (if ::SET_VECTOR_TABLE is enabled)
+ *  - Sets the stack pointer location
+ *  - Perform the jump
+ */
+void Bootloader_JumpToApp1(void)
+{
+    HAL_RCC_DeInit();
+    HAL_DeInit();
+    SysTick->CTRL = 0;
+    SysTick->LOAD = 0;
+    SysTick->VAL  = 0;
+#if(SET_VECTOR_TABLE)
+    SCB->VTOR = APP1_ADDRESS;
+#endif
+    __set_MSP(*(__IO uint32_t*)APP1_ADDRESS);
+    JumpAddress = *(__IO uint32_t*)(APP1_ADDRESS + 4);
+	Jump        = (pFunction)JumpAddress;
+    Jump();
+}
+
+/**
+ * @brief  This function performs the jump to the user application in flash.
+ * @details The function carries out the following operations:
+ *  - De-initialize the clock and peripheral configuration
+ *  - Stop the systick
+ *  - Set the vector table location (if ::SET_VECTOR_TABLE is enabled)
+ *  - Sets the stack pointer location
+ *  - Perform the jump
+ */
+void Bootloader_JumpToApp2(void)
+{
+    HAL_RCC_DeInit();
+    HAL_DeInit();
+    SysTick->CTRL = 0;
+    SysTick->LOAD = 0;
+    SysTick->VAL  = 0;
+#if(SET_VECTOR_TABLE)
+    SCB->VTOR = APP2_ADDRESS;
+#endif
+    __set_MSP(*(__IO uint32_t*)APP2_ADDRESS);
+    JumpAddress = *(__IO uint32_t*)(APP2_ADDRESS + 4);
+	Jump        = (pFunction)JumpAddress;
+    Jump();
+}
 
 /**
  * @brief  This function performs the jump to the MCU System Memory (ST
@@ -451,9 +656,6 @@ void Bootloader_JumpToApplication(void)
  */
 void Bootloader_JumpToSysMem(void)
 {
-    uint32_t  JumpAddress = *(__IO uint32_t*)(SYSMEM_ADDRESS + 4);
-    pFunction Jump        = (pFunction)JumpAddress;
-
     HAL_RCC_DeInit();
     HAL_DeInit();
 
@@ -465,11 +667,15 @@ void Bootloader_JumpToSysMem(void)
     __HAL_SYSCFG_REMAPMEMORY_SYSTEMFLASH();
 
     __set_MSP(*(__IO uint32_t*)SYSMEM_ADDRESS);
+    JumpAddress = *(__IO uint32_t*)(SYSMEM_ADDRESS + 4);
+    Jump        = (pFunction)JumpAddress;
     Jump();
-
     while(1)
         ;
 }
+
+
+
 
 /**
  * @brief  This function returns the version number of the bootloader library.

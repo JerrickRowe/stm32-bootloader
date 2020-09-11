@@ -16,7 +16,7 @@ WS2812_T g_tWs2812RGB;
 
 void delay_100ns( uint16_t t ){
 	while(--t){
-		__NOP();__NOP();__NOP();__NOP();__NOP();__NOP();__NOP();__NOP();__NOP();
+		__NOP();__NOP();__NOP();__NOP();__NOP();__NOP();__NOP();__NOP();__NOP();__NOP();__NOP();
 	}
 }
 

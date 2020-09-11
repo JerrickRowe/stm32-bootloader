@@ -30,7 +30,7 @@
 #define STM32F4
 
 /** Check application checksum on startup */
-#define USE_CHECKSUM 0
+#define USE_CHECKSUM 1
 
 /** Enable write protection after performing in-app-programming */
 #define USE_WRITE_PROTECTION 0
@@ -54,16 +54,28 @@
 
 
 /** Start address of application space in flash */
-#define APP_ADDRESS (uint32_t)0x08010000
+#define APP_ADDRESS 0x08020000u
 
 /** End address of application space (address of last byte) */
-#define END_ADDRESS (uint32_t)0x08083FFF
+#define END_ADDRESS (uint32_t)0x0807FFFF
 
 /** Start address of application checksum in flash */
-#define CRC_ADDRESS (uint32_t)0x080F8000
+#define CRC_ADDRESS (uint32_t)(END_ADDRESS-3)
 
 /** Address of System Memory (ST Bootloader) */
 #define SYSMEM_ADDRESS (uint32_t)0x1FFF0000
+
+
+
+
+#define APP1_ADDRESS	(0x08020000u)
+#define APP1_SIZE		(0x60000u-4u)
+#define APP1_CRC_ADDR	(APP1_ADDRESS+APP1_SIZE)
+
+#define APP2_ADDRESS	(0x08080000u)
+#define APP2_SIZE		(0x60000u-4u)
+#define APP2_CRC_ADDR	(APP2_ADDRESS+APP2_SIZE)
+
 /** @} */
 /* End of configuration ------------------------------------------------------*/
 
@@ -79,14 +91,14 @@
 
 /* Defines -------------------------------------------------------------------*/
 /** Size of application in DWORD (32bits or 4bytes) */
-#define APP_SIZE (uint32_t)(((END_ADDRESS - APP_ADDRESS) + 3) / 4)
+#define APP_SIZE (uint32_t)(((END_ADDRESS - APP_ADDRESS)) / 4)
 
 /** Number of pages per bank in flash */
 #define FLASH_PAGE_NBPERBANK (256)
 
 /* MCU RAM information (to check whether flash contains valid application) */
 #define RAM_BASE SRAM1_BASE     /*!< Start address of RAM */
-#define RAM_SIZE 0x1C000 /*!< RAM size in bytes */
+#define RAM_SIZE 0x20000 /*!< RAM size in bytes */
 
 /* Enumerations --------------------------------------------------------------*/
 /** Bootloader error codes */
@@ -116,6 +128,7 @@ uint8_t Bootloader_Erase(void);
 
 uint8_t Bootloader_FlashBegin(void);
 uint8_t Bootloader_FlashNext(uint64_t data);
+uint8_t Bootloader_FlashNextWord(uint32_t data);
 uint8_t Bootloader_FlashEnd(void);
 
 uint8_t Bootloader_GetProtectionStatus(void);
@@ -125,6 +138,15 @@ uint8_t Bootloader_CheckSize(uint32_t appsize);
 uint8_t Bootloader_VerifyChecksum(void);
 uint8_t Bootloader_CheckForApplication(void);
 void    Bootloader_JumpToApplication(void);
+
+uint8_t Bootloader_IsApp1ChecksumValid(void);
+uint8_t Bootloader_CheckForApp1(void);
+void    Bootloader_JumpToApp1(void);
+
+uint8_t Bootloader_IsApp2ChecksumValid(void);
+uint8_t Bootloader_CheckForApp2(void);
+void    Bootloader_JumpToApp2(void);
+
 void    Bootloader_JumpToSysMem(void);
 
 uint32_t Bootloader_GetVersion(void);

@@ -11,7 +11,7 @@
  *******************************************************************************
  * Copyright (c) 2020 Akos Pasztor.                     https://akospasztor.com
  *******************************************************************************
- */
+ */ 
 
 #include "stm32f4xx.h"
 #include "stm32f4xx_ll_rcc.h"
@@ -22,11 +22,32 @@
 #include "bootloader.h"
 #include "fatfs.h"
 #include "led.h"
+#include "bsp_WS2812x.h"
 #include <stdio.h>
+#include <string.h>
+
+
+#define DEBUG 1
+#if DEBUG
+#include <stdio.h>
+#define PRINT_RAW(fmt,...)	printf( fmt,##__VA_ARGS__ )
+#define PRINT_INF(fmt,...)	printf( fmt"\r\n",##__VA_ARGS__ )
+#define PRINT_ERR(fmt,...)	printf( "Error: "fmt"\r\n",##__VA_ARGS__ )
+#else
+#define PRINT_RAW(fmt,...)	
+#define PRINT_INF(fmt,...)	
+#define PRINT_ERR(fmt,...)	
+#endif
 
 
 /* Private variables ---------------------------------------------------------*/
 static uint8_t BTNcounter = 0;
+
+#define VER		0
+
+#define REV		1
+
+#define PRJ_STR	"FlyFire-bootloader"
 
 /* External variables --------------------------------------------------------*/
 extern char  SDPath[4]; /* SD logical drive path */
@@ -46,6 +67,146 @@ void    SystemClock_Config(void);
 void    Error_Handler(void);
 void    print(const char* str);
 
+/* Private functions ---------------------------------------------------------*/
+const char *months[] = {
+	  "Jan", "Feb", "Mar", "Apr", "May", "Jun"
+	, "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+};
+void getBuildTimeStr_YYYYMMDDhhss(char *pDes){
+	char strDate [] = __DATE__;
+	char strTime [] = __TIME__;
+	unsigned char i;
+	unsigned int month, day, hour, minute, year;
+
+	*(strTime + 2) = 0;
+	*(strTime + 5) = 0;
+	hour = atoi(strTime);
+	
+	minute = atoi(strTime+3);
+	year = atoi(strDate + 9);
+	
+	*(strDate + 6) = 0;
+	day = atoi(strDate + 4);
+	*(strDate + 3) = 0;
+	for (i = 0; i < 12; i++){
+		if (!strcmp(strDate, months[i])){
+			month = i + 1;
+			sprintf( pDes, "20%02d%02d%02d%02d%02d", year, month, day, hour, minute );
+			return;
+		}
+	}
+}
+
+
+const char* get_version_string( void ){
+	static char str[500];
+	print( "\n\n\n\n\n\r" 
+		"______  _        ______  _             \r\n"
+		"|  ___|| |       |  ___|(_)            \r\n"
+		"| |_   | | _   _ | |_    _  _ __   ___ \r\n"
+		"|  _|  | || | | ||  _|  | || '__| / _ \\\r\n"
+		"| |    | || |_| || |    | || |   |  __/\r\n"
+		"\\_|    |_| \\__, |\\_|    |_||_|    \\___|\r\n"
+		"            __/ |                      \r\n"
+		"           |___/                       \r\n"
+	);
+	snprintf( str, sizeof(str), "%s-V%d.%d-", PRJ_STR, VER, REV );
+	getBuildTimeStr_YYYYMMDDhhss(str+strlen(str));
+	return str;
+}
+
+
+
+void MountFilesystem( void ){
+    FRESULT  fr;
+    UINT     num;
+    uint8_t  i;
+    uint8_t  status;
+    uint64_t data;
+    uint32_t cntr;
+    uint32_t addr;
+    char     msg[40] = {0x00};
+    /* Initialize SD card */
+    if(SD_Init())
+    {
+        /* SD init failed */
+        PRINT_INF("SD card cannot be initialized.");
+        return;
+    }
+
+    /* Mount SD card */
+    fr = f_mount(&SDFatFs, (TCHAR const*)SDPath, 1);
+    if(fr != FR_OK)
+    {
+        /* f_mount failed */
+        PRINT_INF("SD card cannot be mounted.");
+        sprintf(msg, "FatFs error code: %u", fr);
+        PRINT_INF("%s",msg);
+        return;
+    }
+    PRINT_INF("SD mounted.");
+
+    /* Open file for programming */
+    fr = f_open(&SDFile, CONF_FILENAME, FA_READ);
+    if(fr != FR_OK)
+    {
+        /* f_open failed */
+        PRINT_INF("File cannot be opened.");
+        sprintf(msg, "FatFs error code: %u", fr);
+        PRINT_INF("%s",msg);
+
+        SD_Eject();
+        PRINT_INF("SD ejected.");
+        return;
+    }
+    PRINT_INF("Software found on SD.");
+}
+
+
+
+void RecoverBackupApp( void ){
+	PRINT_RAW("Recover App2 to App1.");
+	
+	Bootloader_FlashBegin();
+	
+	uint32_t cnt = 0;
+	
+	while( cnt < ((APP2_SIZE+4) / 4 ) ){
+		uint32_t data = *(uint32_t *)(APP2_ADDRESS + (cnt*4));
+		uint8_t  status;
+		status = Bootloader_FlashNextWord(data);
+		if( cnt % 9830 == 0 ){
+			PRINT_RAW(".");
+		}
+		cnt ++;
+	}
+	
+	Bootloader_FlashEnd();
+	
+#if(USE_CHECKSUM)
+	// Verify application checksum 
+	if(Bootloader_IsApp2ChecksumValid() != BL_OK){
+		PRINT_RAW("FAILED");
+	}else{
+		PRINT_RAW("DONE");
+	}
+#endif
+	PRINT_RAW("\r\n");
+}
+
+
+bool FindUpdateFile( void ){
+	return false;
+}
+
+
+bool UpdateApp2( void ){
+	
+	return true;
+}
+
+
+
 /* Main ----------------------------------------------------------------------*/
 int main(void)
 {
@@ -55,121 +216,129 @@ int main(void)
 	Console_Init();
 	
 	led_init();
-    print("\nPower up, Boot started.");
+    PRINT_RAW("%s\r\n",get_version_string());
 
 	led_allon();
 	
-#if OBL_RESET_IS_AVAILABLE
-    /* Check system reset flags */
-    if(__HAL_RCC_GET_FLAG(RCC_FLAG_OBLRST))
-    {
-        print("OBL flag is active.");
-#if(CLEAR_RESET_FLAGS)
-        /* Clear system reset flags */
-        __HAL_RCC_CLEAR_RESET_FLAGS();
-        print("Reset flags cleared.");
-#endif
-    }
-#endif
-
-    /* Check for user action:
-        - button is pressed >= 1 second:  Enter Bootloader. Green LED is
-          blinking.
-        - button is pressed >= 4 seconds: Enter ST System Memory. Yellow LED is
-          blinking.
-        - button is pressed >= 9 seconds: Do nothing, launch application.
-    */
-    while(IS_BTN_PRESSED() && BTNcounter < 90)
-    {
-        if(BTNcounter == 10)
-        {
-            print("Release button to enter Bootloader.");
-        }
-        if(BTNcounter == 40)
-        {
-            print("Release button to enter System Memory.");
-        }
-
-        if(BTNcounter < 10)
-        {
-            LED_ALL_ON();
-        }
-        else if(BTNcounter == 10)
-        {
-            LED_ALL_OFF();
-        }
-        else if(BTNcounter < 40)
-        {
-            LED_G_TG();
-        }
-        else if(BTNcounter == 40) 
-        {
-            LED_G_OFF();
-            LED_Y_ON();
-        }
-        else
-        {
-            LED_Y_TG();
-        }
-
-        BTNcounter++;
-        HAL_Delay(100);
-    }
-
-    LED_ALL_OFF();
-
-    /* Perform required actions based on button press duration */
-    if(BTNcounter < 90)
-    {
-        if(BTNcounter > 40)
-        {
-            print("Entering System Memory...");
-            HAL_Delay(1000);
-            Bootloader_JumpToSysMem();
-        }
-        else if(BTNcounter > 10)
-        {
-            print("Entering Bootloader...");
-            Enter_Bootloader();
-        }
-    }
-
-    /* Check if there is application in user flash area */
-    if(Bootloader_CheckForApplication() == BL_OK)
-    {
-#if(USE_CHECKSUM)
-        /* Verify application checksum */
-        if(Bootloader_VerifyChecksum() != BL_OK)
-        {
-            print("Checksum Error.");
-            Error_Handler();
-        }
-        else
-        {
-            print("Checksum OK.");
-        }
-#endif
-
-        print("Launching Application.");
-        LED_G_ON();
-        HAL_Delay(1000);
-        LED_G_OFF();
-
-        /* De-initialize bootloader hardware & peripherals */
-        SD_DeInit();
-        GPIO_DeInit();
-
-        /* Launch application */
-        Bootloader_JumpToApplication();
-    }
-
-    /* No application found */
-    print("No application in flash.");
+	MountFilesystem();
 	
-	Bootloader_JumpToApplication();
-    while(1)
-    {
-        setAllPixelColor( 255,255,255 );
+	PRINT_RAW("Finding update.bin......");
+	if( FindUpdateFile() == true ){
+		PRINT_RAW("FOUND");
+		if( UpdateApp2() == true ){
+			RecoverBackupApp();
+			PRINT_RAW("Launching App 1.\r\n");
+			// De-initialize bootloader hardware & peripherals
+			SD_DeInit();
+			GPIO_DeInit();
+			// Launch application 
+			Bootloader_JumpToApp1();
+		}
+	}else{
+		PRINT_RAW("NOTFOUND");
+	}
+	PRINT_RAW("\r\n");
+	
+	static bool app1_available = false;
+	static bool app2_available = false;
+
+	PRINT_RAW("Checking for App 1......");
+    // Check if there is application in user flash area
+    if(Bootloader_CheckForApp1() == BL_OK){
+#if(USE_CHECKSUM)
+		// Verify application checksum 
+		if(Bootloader_IsApp1ChecksumValid() != BL_OK){
+			PRINT_RAW("BAD");
+		}else{
+			PRINT_RAW("PASS");
+			app1_available = true;
+		}
+#endif
+	}else{
+		PRINT_RAW("NOTFOUND");
+	}
+	PRINT_RAW("\r\n");
+
+	PRINT_RAW("Checking for App 2......");
+    // Check if there is application in user flash area
+    if(Bootloader_CheckForApp2() == BL_OK){
+#if(USE_CHECKSUM)
+		// Verify application checksum 
+		if(Bootloader_IsApp2ChecksumValid() != BL_OK){
+			PRINT_RAW("BAD");
+		}else{
+			PRINT_RAW("PASS");
+			app2_available = true;
+		}
+#endif
+	}else{
+		PRINT_RAW("NOTFOUND");
+	}
+	PRINT_RAW("\r\n");
+
+	// Check if backup app are the same.
+	bool isApp2TheSameAsApp1 = false;
+	if( app1_available && app2_available ){
+		PRINT_RAW("Comparing App1 and App2......");
+		if( memcmp( APP1_ADDRESS, APP2_ADDRESS, APP2_SIZE ) == 0 ){
+			isApp2TheSameAsApp1 = true;
+			PRINT_RAW("Same\r\n");
+			PRINT_RAW("Launching App 1.\r\n");
+			// De-initialize bootloader hardware & peripherals
+			SD_DeInit();
+			GPIO_DeInit();
+			// Launch application 
+			Bootloader_JumpToApp1();
+		}else{
+			PRINT_RAW("Different");
+			RecoverBackupApp();
+			PRINT_RAW("Launching App 1.\r\n");
+			// De-initialize bootloader hardware & peripherals
+			SD_DeInit();
+			GPIO_DeInit();
+			// Launch application 
+			Bootloader_JumpToApp1();
+		}
+		PRINT_RAW("\r\n");
+	}
+	
+	// Recover from backup app
+	while( !app1_available && app2_available ){
+		
+		RecoverBackupApp();
+		
+		if(Bootloader_CheckForApp1() == BL_OK){
+	#if(USE_CHECKSUM)
+			// Verify application checksum 
+			if(Bootloader_IsApp1ChecksumValid() == BL_OK){
+				app1_available = true;
+				PRINT_RAW("Launching App 1.\r\n");
+				SD_DeInit();
+				GPIO_DeInit();
+				// Launch application 
+				Bootloader_JumpToApp1();
+			}
+	#endif
+		}else{
+			PRINT_RAW("Failed to recover, retry.\r\n");
+		}
+		HAL_Delay(2000);
+	}
+	
+	
+	// Backup current app 1
+	if( app1_available && !app2_available ){
+		PRINT_RAW("Launching App 1.\r\n");
+		SD_DeInit();
+		GPIO_DeInit();
+		// Launch application 
+		Bootloader_JumpToApp1();
+	}
+	
+    // No application found
+    PRINT_INF("No application in flash.");
+    while(1){
+        setAllPixelColor( 20,20,20 );
         HAL_Delay(150);
         setAllPixelColor( 0,0,0 );
         HAL_Delay(150);
@@ -177,6 +346,7 @@ int main(void)
 }
 
 /*** Bootloader ***************************************************************/
+
 void Enter_Bootloader(void)
 {
     FRESULT  fr;
@@ -191,8 +361,8 @@ void Enter_Bootloader(void)
     /* Check for flash write protection */
     if(Bootloader_GetProtectionStatus() & BL_PROTECTION_WRP)
     {
-        print("Application space in flash is write protected.");
-        print("Press button to disable flash write protection...");
+        PRINT_INF("Application space in flash is write protected.");
+        PRINT_INF("Press button to disable flash write protection...");
         LED_R_ON();
         for(i = 0; i < 100; ++i)
         {
@@ -200,15 +370,15 @@ void Enter_Bootloader(void)
             HAL_Delay(50);
             if(IS_BTN_PRESSED())
             {
-                print("Disabling write protection and generating system "
+                PRINT_INF("Disabling write protection and generating system "
                       "reset...");
                 Bootloader_ConfigProtection(BL_PROTECTION_NONE);
             }
         }
         LED_R_OFF();
         LED_Y_OFF();
-        print("Button was not pressed, write protection is still active.");
-        print("Exiting Bootloader.");
+        PRINT_INF("Button was not pressed, write protection is still active.");
+        PRINT_INF("Exiting Bootloader.");
         return;
     }
 
@@ -216,7 +386,7 @@ void Enter_Bootloader(void)
     if(SD_Init())
     {
         /* SD init failed */
-        print("SD card cannot be initialized.");
+        PRINT_INF("SD card cannot be initialized.");
         return;
     }
 
@@ -225,63 +395,63 @@ void Enter_Bootloader(void)
     if(fr != FR_OK)
     {
         /* f_mount failed */
-        print("SD card cannot be mounted.");
+        PRINT_INF("SD card cannot be mounted.");
         sprintf(msg, "FatFs error code: %u", fr);
-        print(msg);
+        PRINT_INF("%s",msg);
         return;
     }
-    print("SD mounted.");
+    PRINT_INF("SD mounted.");
 
     /* Open file for programming */
     fr = f_open(&SDFile, CONF_FILENAME, FA_READ);
     if(fr != FR_OK)
     {
         /* f_open failed */
-        print("File cannot be opened.");
+        PRINT_INF("File cannot be opened.");
         sprintf(msg, "FatFs error code: %u", fr);
-        print(msg);
+        PRINT_INF("%s",msg);
 
         SD_Eject();
-        print("SD ejected.");
+        PRINT_INF("SD ejected.");
         return;
     }
-    print("Software found on SD.");
+    PRINT_INF("Software found on SD.");
 
     /* Check size of application found on SD card */
     if(Bootloader_CheckSize(f_size(&SDFile)) != BL_OK)
     {
-        print("Error: app on SD card is too large.");
+        PRINT_INF("Error: app on SD card is too large.");
 
         f_close(&SDFile);
         SD_Eject();
-        print("SD ejected.");
+        PRINT_INF("SD ejected.");
         return;
     }
-    print("App size OK.");
+    PRINT_INF("App size OK.");
 
     /* Step 1: Init Bootloader and Flash */
     Bootloader_Init();
 
     /* Step 2: Erase Flash */
-    print("Erasing flash...");
+    PRINT_INF("Erasing flash...");
     LED_Y_ON();
     Bootloader_Erase();
     LED_Y_OFF();
-    print("Flash erase finished.");
+    PRINT_INF("Flash erase finished.");
 
     /* If BTN is pressed, then skip programming */
     if(IS_BTN_PRESSED())
     {
-        print("Programming skipped.");
+        PRINT_INF("Programming skipped.");
 
         f_close(&SDFile);
         SD_Eject();
-        print("SD ejected.");
+        PRINT_INF("SD ejected.");
         return;
     }
 
     /* Step 3: Programming */
-    print("Starting programming...");
+    PRINT_INF("Starting programming...");
     LED_Y_ON();
     cntr = 0;
     Bootloader_FlashBegin();
@@ -299,11 +469,11 @@ void Enter_Bootloader(void)
             else
             {
                 sprintf(msg, "Programming error at: %lu byte", (cntr * 8));
-                print(msg);
+				PRINT_INF("%s",msg);
 
                 f_close(&SDFile);
                 SD_Eject();
-                print("SD ejected.");
+                PRINT_INF("SD ejected.");
 
                 LED_G_OFF();
                 LED_Y_OFF();
@@ -322,21 +492,21 @@ void Enter_Bootloader(void)
     f_close(&SDFile);
     LED_G_OFF();
     LED_Y_OFF();
-    print("Programming finished.");
+    PRINT_INF("Programming finished.");
     sprintf(msg, "Flashed: %lu bytes.", (cntr * 8));
-    print(msg);
+    PRINT_INF("%s",msg);
 
     /* Open file for verification */
     fr = f_open(&SDFile, CONF_FILENAME, FA_READ);
     if(fr != FR_OK)
     {
         /* f_open failed */
-        print("File cannot be opened.");
+        PRINT_INF("File cannot be opened.");
         sprintf(msg, "FatFs error code: %u", fr);
-        print(msg);
+        PRINT_INF("%s",msg);
 
         SD_Eject();
-        print("SD ejected.");
+        PRINT_INF("SD ejected.");
         return;
     }
 
@@ -357,11 +527,11 @@ void Enter_Bootloader(void)
             else
             {
                 sprintf(msg, "Verification error at: %lu byte.", (cntr * 4));
-                print(msg);
+				PRINT_INF("%s",msg);
 
                 f_close(&SDFile);
                 SD_Eject();
-                print("SD ejected.");
+                PRINT_INF("SD ejected.");
 
                 LED_G_OFF();
                 return;
@@ -373,20 +543,20 @@ void Enter_Bootloader(void)
             LED_G_TG();
         }
     } while((fr == FR_OK) && (num > 0));
-    print("Verification passed.");
+    PRINT_INF("Verification passed.");
     LED_G_OFF();
 
     /* Eject SD card */
     SD_Eject();
-    print("SD ejected.");
+    PRINT_INF("SD ejected.");
 
     /* Enable flash write protection */
 #if(USE_WRITE_PROTECTION)
-    print("Enablig flash write protection and generating system reset...");
+    PRINT_INF("Enablig flash write protection and generating system reset...");
     if(Bootloader_ConfigProtection(BL_PROTECTION_WRP) != BL_OK)
     {
-        print("Failed to enable write protection.");
-        print("Exiting Bootloader.");
+        PRINT_INF("Failed to enable write protection.");
+        PRINT_INF("Exiting Bootloader.");
     }
 #endif
 }
@@ -405,7 +575,7 @@ uint8_t SD_Init(void)
     if(BSP_SD_Init())
     {
         /* Error */
-        return 1;
+        return 2;
     }
 
     return 0;
@@ -630,7 +800,7 @@ void print(const char* str)
 #if(USE_SWO_TRACE)
     puts(str);
 #else
-	printf( "%s\r\n", str );
+	PRINT_RAW( "%s\r\n", str );
 #endif
 }
 
@@ -641,10 +811,11 @@ void print(const char* str)
  */
 _ARMABI_NORETURN void Error_Handler(void)
 {
-    while(1)
-    {
-        LED_R_TG();
-        HAL_Delay(500);
+    while(1){
+        setAllPixelColor( 20,20,20 );
+        HAL_Delay(150);
+        setAllPixelColor( 0,0,0 );
+        HAL_Delay(150);
     }
 }
 
