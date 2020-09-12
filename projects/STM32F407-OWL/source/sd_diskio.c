@@ -31,7 +31,7 @@
  * The define has effect in SD_read and SD_write.
  * BSP_DRIVER_SD should handle the DMA MSP initialization.
  */
-#define ENABLE_SD_DMA_DRIVER
+//#define ENABLE_SD_DMA_DRIVER
 
 /*
  * When using cachable memory region, it may be needed to maintain the cache

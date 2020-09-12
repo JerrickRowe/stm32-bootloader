@@ -63,7 +63,7 @@ uint8_t BSP_SD_Init(void)
         }
 
         /* Enable wide operation */
-        if(HAL_SD_ConfigWideBusOperation(&hsd1, SDIO_BUS_WIDE_4B) != HAL_OK)
+        if(HAL_SD_ConfigWideBusOperation(&hsd1, SDIO_BUS_WIDE_1B) != HAL_OK)
         {
             /* Retry */
             continue;

@@ -5,7 +5,9 @@
 /* Bootloader build date [YYYY-MM-DD] */
 #define CONF_BUILD __DATE__
 /* File name of application located on SD card */
-#define CONF_FILENAME "Upgrade.bin"
+#define CONF_FILENAME "config.txt"
+
+#define UPGRADE_FILENAME	"/upgrade.bin"
 /* For development/debugging: stdout/stderr via SWO trace */
 #define USE_SWO_TRACE 0
 /******************************************************************************/

@@ -118,6 +118,8 @@ const char* get_version_string( void ){
 
 
 void MountFilesystem( void ){
+	
+    PRINT_RAW("Mount SD card and FatFS........");
     FRESULT  fr;
     UINT     num;
     uint8_t  i;
@@ -130,7 +132,7 @@ void MountFilesystem( void ){
     if(SD_Init())
     {
         /* SD init failed */
-        PRINT_INF("SD card cannot be initialized.");
+        PRINT_INF("INIT_FAILED");
         return;
     }
 
@@ -139,33 +141,17 @@ void MountFilesystem( void ){
     if(fr != FR_OK)
     {
         /* f_mount failed */
-        PRINT_INF("SD card cannot be mounted.");
-        sprintf(msg, "FatFs error code: %u", fr);
-        PRINT_INF("%s",msg);
+        PRINT_INF("MNT_FAILED [0x%02X]",fr);
         return;
     }
-    PRINT_INF("SD mounted.");
+    PRINT_INF("DONE");
 
-    /* Open file for programming */
-    fr = f_open(&SDFile, CONF_FILENAME, FA_READ);
-    if(fr != FR_OK)
-    {
-        /* f_open failed */
-        PRINT_INF("File cannot be opened.");
-        sprintf(msg, "FatFs error code: %u", fr);
-        PRINT_INF("%s",msg);
-
-        SD_Eject();
-        PRINT_INF("SD ejected.");
-        return;
-    }
-    PRINT_INF("Software found on SD.");
 }
 
 
 
-void RecoverBackupApp( void ){
-	PRINT_RAW("Recover App2 to App1.");
+void Copy_App2_To_App1( void ){
+	PRINT_RAW("Copy App2 to App1.");
 	
 	Bootloader_FlashBegin();
 	
@@ -195,13 +181,71 @@ void RecoverBackupApp( void ){
 }
 
 
-bool FindUpdateFile( void ){
+bool VerifyUpgradeFile( FIL *fp ){
+	if( !fp ){
+		return false;
+	}
 	return false;
 }
 
 
+static FIL upgrade_file;
 bool UpdateApp2( void ){
+	FRESULT fr;
+	FILINFO file_info;
 	
+	
+	PRINT_RAW("Create \"%s\"......", UPGRADE_FILENAME);
+	fr = f_open(&upgrade_file, UPGRADE_FILENAME, FA_READ | FA_WRITE | FA_CREATE_ALWAYS);
+    if(fr != FR_OK){
+		PRINT_INF("FAILED");
+	}else{
+		
+		PRINT_INF("DONE");
+		f_close(&upgrade_file);
+	}
+	return false;
+	
+	PRINT_RAW("Finding \"%s\"......", UPGRADE_FILENAME);
+	fr = f_stat(UPGRADE_FILENAME, &file_info);
+    if(fr != FR_OK){
+		PRINT_INF("NOTFOUND");
+        return false;
+	}
+	PRINT_INF("FOUND");
+	PRINT_INF(	"File info: %s %dbytes"
+	,	file_info.altname
+	,	file_info.fsize
+	);
+	
+	PRINT_RAW("Opening \"%s\"......", UPGRADE_FILENAME);
+	fr = f_open(&upgrade_file, UPGRADE_FILENAME, FA_READ);
+	if( fr != FR_OK ){
+		PRINT_INF("FAILED");
+		return false;
+	}
+	PRINT_INF("DONE");
+	
+	PRINT_RAW("Verifying upgrade file......");
+	if( VerifyUpgradeFile(&upgrade_file) == false ){
+		PRINT_INF("FAILED");
+		f_close(&upgrade_file);
+		PRINT_RAW("Delete %s........", UPGRADE_FILENAME);
+		f_unlink(UPGRADE_FILENAME);
+		fr = f_stat(UPGRADE_FILENAME, &file_info);
+		if(fr != FR_OK){
+			PRINT_INF("DONE");
+		}else{
+			PRINT_INF("FAILED");
+		}
+		return false;
+	}
+	PRINT_INF("PASS");
+	
+	
+	
+	Copy_App2_To_App1();
+	f_close(&upgrade_file);
 	return true;
 }
 
@@ -221,23 +265,19 @@ int main(void)
 	led_allon();
 	
 	MountFilesystem();
+
+	char *cwd[50];
+	f_getcwd(cwd,50);
+	PRINT_RAW("Current path: \"%s\"\r\n", cwd);
 	
-	PRINT_RAW("Finding update.bin......");
-	if( FindUpdateFile() == true ){
-		PRINT_RAW("FOUND");
-		if( UpdateApp2() == true ){
-			RecoverBackupApp();
-			PRINT_RAW("Launching App 1.\r\n");
-			// De-initialize bootloader hardware & peripherals
-			SD_DeInit();
-			GPIO_DeInit();
-			// Launch application 
-			Bootloader_JumpToApp1();
-		}
-	}else{
-		PRINT_RAW("NOTFOUND");
+	if( UpdateApp2() == true ){
+		PRINT_RAW("Launching new app.\r\n");
+		// De-initialize bootloader hardware & peripherals
+		SD_DeInit();
+		GPIO_DeInit();
+		// Launch application 
+		Bootloader_JumpToApp1();
 	}
-	PRINT_RAW("\r\n");
 	
 	static bool app1_available = false;
 	static bool app2_available = false;
@@ -290,22 +330,21 @@ int main(void)
 			// Launch application 
 			Bootloader_JumpToApp1();
 		}else{
-			PRINT_RAW("Different");
-			RecoverBackupApp();
-			PRINT_RAW("Launching App 1.\r\n");
+			PRINT_INF("Different");
+			Copy_App2_To_App1();
+			PRINT_INF("Launching App 1.");
 			// De-initialize bootloader hardware & peripherals
 			SD_DeInit();
 			GPIO_DeInit();
 			// Launch application 
 			Bootloader_JumpToApp1();
 		}
-		PRINT_RAW("\r\n");
 	}
 	
 	// Recover from backup app
 	while( !app1_available && app2_available ){
 		
-		RecoverBackupApp();
+		Copy_App2_To_App1();
 		
 		if(Bootloader_CheckForApp1() == BL_OK){
 	#if(USE_CHECKSUM)

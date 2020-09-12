@@ -25,6 +25,8 @@
 #define SDMMC_IRQ_PRIO  1
 #define SD_DMA_IRQ_PRIO 2
 
+#define SDMMC_HAL_TIMEOUT (SD_DATATIMEOUT)
+
 /* Exported functions --------------------------------------------------------*/
 uint8_t BSP_SD_Init(void);
 uint8_t BSP_SD_DeInit(void);
