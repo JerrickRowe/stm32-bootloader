@@ -337,9 +337,9 @@
             <v6Rtti>0</v6Rtti>
             <VariousControls>
               <MiscControls></MiscControls>
-              <Define>HSE_VALUE=8000000, STM32F407xx, _RTE_</Define>
+              <Define>HSE_VALUE=8000000, STM32F407xx, _RTE_, USE_HAL_DRIVER</Define>
               <Undefine></Undefine>
-              <IncludePath>.\lib\fatfs;.\lib\stm32-bootloader;.\drivers\STM32F4xx_HAL_Driver\Inc;.\projects\STM32F407-OWL\include;.\projects\STM32F407-OWL\source;.\projects\STM32F407-OWL\RTE;.\drivers\STM32F4xx_HAL_Driver\Config;.\projects\STM32F407-OWL\RTE\_Release;.\drivers\CMSIS\Device\ST\STM32F4xx\Include;.\drivers\CMSIS\Include</IncludePath>
+              <IncludePath>.\lib\fatfs;.\lib\stm32-bootloader;.\drivers\STM32F4xx_HAL_Driver\Inc;.\projects\STM32F407-OWL\include;.\projects\STM32F407-OWL\source;.\projects\STM32F407-OWL\RTE;.\drivers\STM32F4xx_HAL_Driver\Config;.\projects\STM32F407-OWL\RTE\_Release;.\drivers\CMSIS\Device\ST\STM32F4xx\Include;.\drivers\CMSIS\Include;.\lib\fatfs\ff14\source;.\lib\fatfs\ff14_port</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -399,11 +399,6 @@
           <GroupName>bsp</GroupName>
           <Files>
             <File>
-              <FileName>bsp_driver_sd_stm32f4xx.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\projects\STM32F407-OWL\source\bsp_driver_sd_stm32f4xx.c</FilePath>
-            </File>
-            <File>
               <FileName>bsp_WS2812x.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\projects\STM32F407-OWL\source\bsp_WS2812x.c</FilePath>
@@ -433,40 +428,55 @@
               <FileType>1</FileType>
               <FilePath>.\projects\STM32F407-OWL\source\LED_Serial.c</FilePath>
             </File>
-            <File>
-              <FileName>sd_diskio.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\projects\STM32F407-OWL\source\sd_diskio.c</FilePath>
-            </File>
           </Files>
         </Group>
         <Group>
           <GroupName>fs</GroupName>
           <Files>
             <File>
+              <FileName>00history.txt</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\lib\fatfs\ff14\source\00history.txt</FilePath>
+            </File>
+            <File>
+              <FileName>00readme.txt</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\lib\fatfs\ff14\source\00readme.txt</FilePath>
+            </File>
+            <File>
               <FileName>diskio.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\lib\fatfs\diskio.c</FilePath>
+              <FilePath>.\lib\fatfs\ff14\source\diskio.c</FilePath>
             </File>
             <File>
-              <FileName>unicode.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\lib\fatfs\option\unicode.c</FilePath>
-            </File>
-            <File>
-              <FileName>ff_gen_drv.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\lib\fatfs\ff_gen_drv.c</FilePath>
+              <FileName>diskio.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\lib\fatfs\ff14\source\diskio.h</FilePath>
             </File>
             <File>
               <FileName>ff.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\lib\fatfs\ff.c</FilePath>
+              <FilePath>.\lib\fatfs\ff14\source\ff.c</FilePath>
             </File>
             <File>
-              <FileName>fatfs.c</FileName>
+              <FileName>ff.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\lib\fatfs\ff14\source\ff.h</FilePath>
+            </File>
+            <File>
+              <FileName>ffconf.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\lib\fatfs\ff14\source\ffconf.h</FilePath>
+            </File>
+            <File>
+              <FileName>ffsystem.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\projects\STM32F407-OWL\source\fatfs.c</FilePath>
+              <FilePath>.\lib\fatfs\ff14\source\ffsystem.c</FilePath>
+            </File>
+            <File>
+              <FileName>ffunicode.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\lib\fatfs\ff14\source\ffunicode.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -907,6 +917,26 @@
               <FileName>stm32f4xx_ll_utils.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\drivers\STM32F4xx_HAL_Driver\Src\stm32f4xx_ll_utils.c</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>fs_port</GroupName>
+          <Files>
+            <File>
+              <FileName>mmc_port.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\lib\fatfs\ff14_port\mmc_port.c</FilePath>
+            </File>
+            <File>
+              <FileName>testcases.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\lib\fatfs\ff14_port\testcases.c</FilePath>
+            </File>
+            <File>
+              <FileName>sdio_stm32f4xx.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\lib\fatfs\ff14_port\sdio_stm32f4xx.c</FilePath>
             </File>
           </Files>
         </Group>

@@ -2,6 +2,7 @@
 #define __BSP_DRIVER_SD_H
 
 /* Includes ------------------------------------------------------------------*/
+#include "stm32f4xx.h"
 #include "stm32f4xx_hal.h"
 #include "stm32f4xx_hal_sd.h"
 
@@ -25,7 +26,7 @@
 #define SDMMC_IRQ_PRIO  1
 #define SD_DMA_IRQ_PRIO 2
 
-#define SDMMC_HAL_TIMEOUT (SD_DATATIMEOUT)
+#define SDMMC_HAL_TIMEOUT (1000000)
 
 /* Exported functions --------------------------------------------------------*/
 uint8_t BSP_SD_Init(void);

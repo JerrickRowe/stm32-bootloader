@@ -34,7 +34,7 @@
 /  1: Enable without LF-CRLF conversion.
 /  2: Enable with LF-CRLF conversion. */
 
-#define _USE_FIND 0
+#define _USE_FIND 1
 /* This option switches filtered directory read functions, f_findfirst() and
 /  f_findnext(). (0:Disable, 1:Enable 2:Enable with matching altname[] too) */
 
@@ -53,7 +53,7 @@ f_utime().
 /  (0:Disable or 1:Enable) Also _FS_READONLY needs to be 0 to enable this
 option. */
 
-#define _USE_LABEL 1
+#define _USE_LABEL 0
 /* This option switches volume label functions, f_getlabel() and f_setlabel().
 /  (0:Disable or 1:Enable) */
 
@@ -64,7 +64,7 @@ option. */
 / Locale and Namespace Configurations
 /-----------------------------------------------------------------------------*/
 
-#define _CODE_PAGE 437
+#define _CODE_PAGE 1
 /* This option specifies the OEM code page to be used on the target system.
 /  Incorrect setting of the code page can cause a file open failure.
 /
@@ -92,7 +92,7 @@ option. */
 /   950 - Traditional Chinese (DBCS)
 */
 
-#define _USE_LFN 1   /* 0 to 3 */
+#define _USE_LFN 0   /* 0 to 3 */
 #define _MAX_LFN 255 /* Maximum LFN length to handle (12 to 255) */
 /* The _USE_LFN switches the support of long file name (LFN).
 /
@@ -114,7 +114,7 @@ memory for the working buffer, memory management functions, ff_memalloc() and
 /  To use Unicode string for the path name, enable LFN and set _LFN_UNICODE = 1.
 /  This option also affects behavior of string I/O functions. */
 
-#define _STRF_ENCODE 3
+#define _STRF_ENCODE 0
 /* When _LFN_UNICODE == 1, this option selects the character encoding ON THE
 FILE to /  be read/written via string I/O functions, f_gets(), f_putc(), f_puts
 and f_printf().
@@ -173,7 +173,7 @@ implemented to the /  disk_ioctl() function. */
 /  To enable Trim function, also CTRL_TRIM command should be implemented to the
 /  disk_ioctl() function. */
 
-#define _FS_NOFSINFO 0 /* 0,1,2 or 3 */
+#define _FS_NOFSINFO 3 /* 0,1,2 or 3 */
 /* If you need to know correct free space on the FAT32 volume, set bit 0 of this
 /  option, and f_getfree() function at first time after volume mount will force
 /  a full FAT scan. Bit 1 controls the use of last allocated cluster number.
@@ -200,7 +200,7 @@ data transfer. */
 /  When enable exFAT, also LFN needs to be enabled. (_USE_LFN >= 1)
 /  Note that enabling exFAT discards C89 compatibility. */
 
-#define _FS_NORTC   0
+#define _FS_NORTC   1
 #define _NORTC_MON  02
 #define _NORTC_MDAY 02
 #define _NORTC_YEAR 2020

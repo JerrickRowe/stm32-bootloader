@@ -13,8 +13,8 @@
  *******************************************************************************
  */
 
-#include "ff_gen_drv.h"
-#include "sd_diskio.h"
+// #include "ff_gen_drv.h"
+//#include "sd_diskio.h"
 
 /* Defines -------------------------------------------------------------------*/
 #define SD_TIMEOUT SD_DATATIMEOUT /* Defined in bsp_driver_sd.h */

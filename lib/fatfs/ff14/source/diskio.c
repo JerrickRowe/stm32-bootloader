@@ -28,12 +28,12 @@ DSTATUS disk_status (
 	int result;
 
 	switch (pdrv) {
-	case DEV_RAM :
-		result = RAM_disk_status();
+	// case DEV_RAM :
+	// 	result = RAM_disk_status();
 
-		// translate the reslut code here
+	// 	// translate the reslut code here
 
-		return stat;
+	// 	return stat;
 
 	case DEV_MMC :
 		result = MMC_disk_status();
@@ -42,12 +42,12 @@ DSTATUS disk_status (
 
 		return stat;
 
-	case DEV_USB :
-		result = USB_disk_status();
+	// case DEV_USB :
+	// 	result = USB_disk_status();
 
-		// translate the reslut code here
+	// 	// translate the reslut code here
 
-		return stat;
+	// 	return stat;
 	}
 	return STA_NOINIT;
 }
@@ -66,12 +66,12 @@ DSTATUS disk_initialize (
 	int result;
 
 	switch (pdrv) {
-	case DEV_RAM :
-		result = RAM_disk_initialize();
+	// case DEV_RAM :
+	// 	result = RAM_disk_initialize();
 
-		// translate the reslut code here
+	// 	// translate the reslut code here
 
-		return stat;
+	// 	return stat;
 
 	case DEV_MMC :
 		result = MMC_disk_initialize();
@@ -80,12 +80,12 @@ DSTATUS disk_initialize (
 
 		return stat;
 
-	case DEV_USB :
-		result = USB_disk_initialize();
+	// case DEV_USB :
+	// 	result = USB_disk_initialize();
 
-		// translate the reslut code here
+	// 	// translate the reslut code here
 
-		return stat;
+	// 	return stat;
 	}
 	return STA_NOINIT;
 }
@@ -107,14 +107,14 @@ DRESULT disk_read (
 	int result;
 
 	switch (pdrv) {
-	case DEV_RAM :
-		// translate the arguments here
+	// case DEV_RAM :
+	// 	// translate the arguments here
 
-		result = RAM_disk_read(buff, sector, count);
+	// 	result = RAM_disk_read(buff, sector, count);
 
-		// translate the reslut code here
+	// 	// translate the reslut code here
 
-		return res;
+	// 	return res;
 
 	case DEV_MMC :
 		// translate the arguments here
@@ -122,17 +122,21 @@ DRESULT disk_read (
 		result = MMC_disk_read(buff, sector, count);
 
 		// translate the reslut code here
-
+		if( result == (int)count ){
+			res = RES_OK;
+		}else{
+			res = RES_ERROR;
+		}
 		return res;
 
-	case DEV_USB :
-		// translate the arguments here
+	// case DEV_USB :
+	// 	// translate the arguments here
 
-		result = USB_disk_read(buff, sector, count);
+	// 	result = USB_disk_read(buff, sector, count);
 
-		// translate the reslut code here
+	// 	// translate the reslut code here
 
-		return res;
+	// 	return res;
 	}
 
 	return RES_PARERR;
@@ -157,14 +161,14 @@ DRESULT disk_write (
 	int result;
 
 	switch (pdrv) {
-	case DEV_RAM :
-		// translate the arguments here
+	// case DEV_RAM :
+	// 	// translate the arguments here
 
-		result = RAM_disk_write(buff, sector, count);
+	// 	result = RAM_disk_write(buff, sector, count);
 
-		// translate the reslut code here
+	// 	// translate the reslut code here
 
-		return res;
+	// 	return res;
 
 	case DEV_MMC :
 		// translate the arguments here
@@ -172,17 +176,21 @@ DRESULT disk_write (
 		result = MMC_disk_write(buff, sector, count);
 
 		// translate the reslut code here
-
+		if( result == (int)count ){
+			res = RES_OK;
+		}else{
+			res = RES_ERROR;
+		}
 		return res;
 
-	case DEV_USB :
-		// translate the arguments here
+	// case DEV_USB :
+	// 	// translate the arguments here
 
-		result = USB_disk_write(buff, sector, count);
+	// 	result = USB_disk_write(buff, sector, count);
 
-		// translate the reslut code here
+	// 	// translate the reslut code here
 
-		return res;
+	// 	return res;
 	}
 
 	return RES_PARERR;
@@ -205,23 +213,47 @@ DRESULT disk_ioctl (
 	int result;
 
 	switch (pdrv) {
-	case DEV_RAM :
+	// case DEV_RAM :
 
-		// Process of the command for the RAM drive
+	// 	// Process of the command for the RAM drive
 
-		return res;
+	// 	return res;
 
 	case DEV_MMC :
 
+		switch( cmd ){
+		case CTRL_SYNC			:	//0	/* Complete pending write process (needed at FF_FS_READONLY == 0) */
+		#if FF_FS_READONLY == 0
+//			res = RES_NOTRDY;
+			res = RES_OK;
+		#else
+			res = RES_OK;
+		#endif
+			break;
+		case GET_SECTOR_COUNT	:	//1	/* Get media size (needed at FF_USE_MKFS == 1) */
+			*(UINT*)buff = 1024;
+			res = RES_OK;
+			break;
+		case GET_SECTOR_SIZE	:	//2	/* Get sector size (needed at FF_MAX_SS != FF_MIN_SS) */
+			*(WORD*)buff = 512;
+			res = RES_OK;
+			break;
+		case GET_BLOCK_SIZE		:	//3	/* Get erase block size (needed at FF_USE_MKFS == 1) */
+			*(DWORD*)buff = 512;
+			res = RES_OK;
+			break;
+		case CTRL_TRIM			:	//4	/* Inform device that the data on the block of sectors is no longer used (needed at FF_USE_TRIM == 1) */
+			res = RES_NOTRDY;
+			break;
+		}
 		// Process of the command for the MMC/SD card
-
 		return res;
 
-	case DEV_USB :
+	// case DEV_USB :
 
-		// Process of the command the USB drive
+	// 	// Process of the command the USB drive
 
-		return res;
+	// 	return res;
 	}
 
 	return RES_PARERR;

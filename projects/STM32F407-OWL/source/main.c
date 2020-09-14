@@ -14,18 +14,19 @@
  */ 
 
 #include "stm32f4xx.h"
+#include "stm32f4xx_hal.h"
 #include "stm32f4xx_ll_rcc.h"
-#include "stm32f4xx_hal_rcc.h"
-#include "stm32f4xx_hal_dma.h"
-#include "stm32f4xx_hal_usart.h"
 #include "main.h"
 #include "bootloader.h"
-#include "fatfs.h"
+#include "ff.h"
 #include "led.h"
 #include "bsp_WS2812x.h"
+#include <assert.h>
 #include <stdio.h>
 #include <string.h>
+#include <ctype.h>
 
+#include "testcases.h"
 
 #define DEBUG 1
 #if DEBUG
@@ -50,16 +51,16 @@ static uint8_t BTNcounter = 0;
 #define PRJ_STR	"FlyFire-bootloader"
 
 /* External variables --------------------------------------------------------*/
-extern char  SDPath[4]; /* SD logical drive path */
-extern FATFS SDFatFs;   /* File system object for SD logical drive */
-extern FIL   SDFile;    /* File object for SD */
+char  SDPath[4]; /* SD logical drive path */
+FATFS SDFatFs;   /* File system object for SD logical drive */
+FIL   SDFile;    /* File object for SD */
 
 /* Function prototypes -------------------------------------------------------*/
 void    Enter_Bootloader(void);
 uint8_t SD_Init(void);
 void    SD_DeInit(void);
 void    SD_Eject(void);
-void    GPIO_Init(void);
+void    GPIO_Startup(void);
 void    Console_Init(void);
 void    Console_DeInit(void);
 void    GPIO_DeInit(void);
@@ -117,7 +118,40 @@ const char* get_version_string( void ){
 
 
 
+
+/**
+  * @brief This function is called to increment  a global variable "uwTick"
+  *        used as application time base.
+  * @note In the default implementation, this variable is incremented each 1ms
+  *       in SysTick ISR.
+ * @note This function is declared as __weak to be overwritten in case of other 
+  *      implementations in user file.
+  * @retval None
+  */
+static uint32_t tick;
+void HAL_IncTick(void)
+{
+  tick ++;
+}
+
+/**
+  * @brief Provides a tick value in millisecond.
+  * @note This function is declared as __weak to be overwritten in case of other 
+  *       implementations in user file.
+  * @retval tick value
+  */
+uint32_t HAL_GetTick(void)
+{
+  return tick;
+}
+
+
+
+int testcase_4 ( void );
+
 void MountFilesystem( void ){
+	
+	testcase_4();
 	
     PRINT_RAW("Mount SD card and FatFS........");
     FRESULT  fr;
@@ -129,12 +163,12 @@ void MountFilesystem( void ){
     uint32_t addr;
     char     msg[40] = {0x00};
     /* Initialize SD card */
-    if(SD_Init())
-    {
-        /* SD init failed */
-        PRINT_INF("INIT_FAILED");
-        return;
-    }
+//    if(SD_Init())
+//    {
+//        /* SD init failed */
+//        PRINT_INF("INIT_FAILED");
+//        return;
+//    }
 
     /* Mount SD card */
     fr = f_mount(&SDFatFs, (TCHAR const*)SDPath, 1);
@@ -193,7 +227,32 @@ static FIL upgrade_file;
 bool UpdateApp2( void ){
 	FRESULT fr;
 	FILINFO file_info;
+	FILINFO fno;
 	
+	PRINT_INF(	"List files:" );
+	
+	
+	
+	DIR dir;
+    fr = f_opendir(&dir, "/");                       /* Open the directory */
+    if (fr == FR_OK) {
+		uint32_t i;
+        for (;;) {
+            fr = f_readdir(&dir, &fno);                   /* Read a directory item */
+            if (fr != FR_OK || fno.fname[0] == 0) break;  /* Break on error or end of dir */
+            if (fno.fattrib & AM_DIR) {                    /* It is a directory */
+				PRINT_INF(	"#%s"
+				,	fno.fname
+				);
+            } else {                                       /* It is a file. */
+				PRINT_INF(	"%s, %dbytes"
+				,	fno.fname
+				,	fno.fsize
+				);
+            }
+        }
+        f_closedir(&dir);
+    }
 	
 	PRINT_RAW("Create \"%s\"......", UPGRADE_FILENAME);
 	fr = f_open(&upgrade_file, UPGRADE_FILENAME, FA_READ | FA_WRITE | FA_CREATE_ALWAYS);
@@ -214,7 +273,7 @@ bool UpdateApp2( void ){
 	}
 	PRINT_INF("FOUND");
 	PRINT_INF(	"File info: %s %dbytes"
-	,	file_info.altname
+	,	file_info.fname
 	,	file_info.fsize
 	);
 	
@@ -255,7 +314,7 @@ bool UpdateApp2( void ){
 int main(void)
 {
     HAL_Init();
-    GPIO_Init();
+    GPIO_Startup();
 
 	Console_Init();
 	
@@ -264,8 +323,11 @@ int main(void)
 
 	led_allon();
 	
+	
 	MountFilesystem();
 
+	
+	/*
 	char *cwd[50];
 	f_getcwd(cwd,50);
 	PRINT_RAW("Current path: \"%s\"\r\n", cwd);
@@ -278,7 +340,7 @@ int main(void)
 		// Launch application 
 		Bootloader_JumpToApp1();
 	}
-	
+	*/
 	static bool app1_available = false;
 	static bool app2_available = false;
 
@@ -388,228 +450,228 @@ int main(void)
 
 void Enter_Bootloader(void)
 {
-    FRESULT  fr;
-    UINT     num;
-    uint8_t  i;
-    uint8_t  status;
-    uint64_t data;
-    uint32_t cntr;
-    uint32_t addr;
-    char     msg[40] = {0x00};
+//    FRESULT  fr;
+//    UINT     num;
+//    uint8_t  i;
+//    uint8_t  status;
+//    uint64_t data;
+//    uint32_t cntr;
+//    uint32_t addr;
+//    char     msg[40] = {0x00};
 
-    /* Check for flash write protection */
-    if(Bootloader_GetProtectionStatus() & BL_PROTECTION_WRP)
-    {
-        PRINT_INF("Application space in flash is write protected.");
-        PRINT_INF("Press button to disable flash write protection...");
-        LED_R_ON();
-        for(i = 0; i < 100; ++i)
-        {
-            LED_Y_TG();
-            HAL_Delay(50);
-            if(IS_BTN_PRESSED())
-            {
-                PRINT_INF("Disabling write protection and generating system "
-                      "reset...");
-                Bootloader_ConfigProtection(BL_PROTECTION_NONE);
-            }
-        }
-        LED_R_OFF();
-        LED_Y_OFF();
-        PRINT_INF("Button was not pressed, write protection is still active.");
-        PRINT_INF("Exiting Bootloader.");
-        return;
-    }
+//    /* Check for flash write protection */
+//    if(Bootloader_GetProtectionStatus() & BL_PROTECTION_WRP)
+//    {
+//        PRINT_INF("Application space in flash is write protected.");
+//        PRINT_INF("Press button to disable flash write protection...");
+//        LED_R_ON();
+//        for(i = 0; i < 100; ++i)
+//        {
+//            LED_Y_TG();
+//            HAL_Delay(50);
+//            if(IS_BTN_PRESSED())
+//            {
+//                PRINT_INF("Disabling write protection and generating system "
+//                      "reset...");
+//                Bootloader_ConfigProtection(BL_PROTECTION_NONE);
+//            }
+//        }
+//        LED_R_OFF();
+//        LED_Y_OFF();
+//        PRINT_INF("Button was not pressed, write protection is still active.");
+//        PRINT_INF("Exiting Bootloader.");
+//        return;
+//    }
 
-    /* Initialize SD card */
-    if(SD_Init())
-    {
-        /* SD init failed */
-        PRINT_INF("SD card cannot be initialized.");
-        return;
-    }
+//    /* Initialize SD card */
+//    if(SD_Init())
+//    {
+//        /* SD init failed */
+//        PRINT_INF("SD card cannot be initialized.");
+//        return;
+//    }
 
-    /* Mount SD card */
-    fr = f_mount(&SDFatFs, (TCHAR const*)SDPath, 1);
-    if(fr != FR_OK)
-    {
-        /* f_mount failed */
-        PRINT_INF("SD card cannot be mounted.");
-        sprintf(msg, "FatFs error code: %u", fr);
-        PRINT_INF("%s",msg);
-        return;
-    }
-    PRINT_INF("SD mounted.");
+//    /* Mount SD card */
+//    fr = f_mount(&SDFatFs, (TCHAR const*)SDPath, 1);
+//    if(fr != FR_OK)
+//    {
+//        /* f_mount failed */
+//        PRINT_INF("SD card cannot be mounted.");
+//        sprintf(msg, "FatFs error code: %u", fr);
+//        PRINT_INF("%s",msg);
+//        return;
+//    }
+//    PRINT_INF("SD mounted.");
 
-    /* Open file for programming */
-    fr = f_open(&SDFile, CONF_FILENAME, FA_READ);
-    if(fr != FR_OK)
-    {
-        /* f_open failed */
-        PRINT_INF("File cannot be opened.");
-        sprintf(msg, "FatFs error code: %u", fr);
-        PRINT_INF("%s",msg);
+//    /* Open file for programming */
+//    fr = f_open(&SDFile, CONF_FILENAME, FA_READ);
+//    if(fr != FR_OK)
+//    {
+//        /* f_open failed */
+//        PRINT_INF("File cannot be opened.");
+//        sprintf(msg, "FatFs error code: %u", fr);
+//        PRINT_INF("%s",msg);
 
-        SD_Eject();
-        PRINT_INF("SD ejected.");
-        return;
-    }
-    PRINT_INF("Software found on SD.");
+//        SD_Eject();
+//        PRINT_INF("SD ejected.");
+//        return;
+//    }
+//    PRINT_INF("Software found on SD.");
 
-    /* Check size of application found on SD card */
-    if(Bootloader_CheckSize(f_size(&SDFile)) != BL_OK)
-    {
-        PRINT_INF("Error: app on SD card is too large.");
+//    /* Check size of application found on SD card */
+//    if(Bootloader_CheckSize(f_size(&SDFile)) != BL_OK)
+//    {
+//        PRINT_INF("Error: app on SD card is too large.");
 
-        f_close(&SDFile);
-        SD_Eject();
-        PRINT_INF("SD ejected.");
-        return;
-    }
-    PRINT_INF("App size OK.");
+//        f_close(&SDFile);
+//        SD_Eject();
+//        PRINT_INF("SD ejected.");
+//        return;
+//    }
+//    PRINT_INF("App size OK.");
 
-    /* Step 1: Init Bootloader and Flash */
-    Bootloader_Init();
+//    /* Step 1: Init Bootloader and Flash */
+//    Bootloader_Init();
 
-    /* Step 2: Erase Flash */
-    PRINT_INF("Erasing flash...");
-    LED_Y_ON();
-    Bootloader_Erase();
-    LED_Y_OFF();
-    PRINT_INF("Flash erase finished.");
+//    /* Step 2: Erase Flash */
+//    PRINT_INF("Erasing flash...");
+//    LED_Y_ON();
+//    Bootloader_Erase();
+//    LED_Y_OFF();
+//    PRINT_INF("Flash erase finished.");
 
-    /* If BTN is pressed, then skip programming */
-    if(IS_BTN_PRESSED())
-    {
-        PRINT_INF("Programming skipped.");
+//    /* If BTN is pressed, then skip programming */
+//    if(IS_BTN_PRESSED())
+//    {
+//        PRINT_INF("Programming skipped.");
 
-        f_close(&SDFile);
-        SD_Eject();
-        PRINT_INF("SD ejected.");
-        return;
-    }
+//        f_close(&SDFile);
+//        SD_Eject();
+//        PRINT_INF("SD ejected.");
+//        return;
+//    }
 
-    /* Step 3: Programming */
-    PRINT_INF("Starting programming...");
-    LED_Y_ON();
-    cntr = 0;
-    Bootloader_FlashBegin();
-    do
-    {
-        data = 0xFFFFFFFFFFFFFFFF;
-        fr   = f_read(&SDFile, &data, 8, &num);
-        if(num)
-        {
-            status = Bootloader_FlashNext(data);
-            if(status == BL_OK)
-            {
-                cntr++;
-            }
-            else
-            {
-                sprintf(msg, "Programming error at: %lu byte", (cntr * 8));
-				PRINT_INF("%s",msg);
+//    /* Step 3: Programming */
+//    PRINT_INF("Starting programming...");
+//    LED_Y_ON();
+//    cntr = 0;
+//    Bootloader_FlashBegin();
+//    do
+//    {
+//        data = 0xFFFFFFFFFFFFFFFF;
+//        fr   = f_read(&SDFile, &data, 8, &num);
+//        if(num)
+//        {
+//            status = Bootloader_FlashNext(data);
+//            if(status == BL_OK)
+//            {
+//                cntr++;
+//            }
+//            else
+//            {
+//                sprintf(msg, "Programming error at: %lu byte", (cntr * 8));
+//				PRINT_INF("%s",msg);
 
-                f_close(&SDFile);
-                SD_Eject();
-                PRINT_INF("SD ejected.");
+//                f_close(&SDFile);
+//                SD_Eject();
+//                PRINT_INF("SD ejected.");
 
-                LED_G_OFF();
-                LED_Y_OFF();
-                return;
-            }
-        }
-        if(cntr % 256 == 0)
-        {
-            /* Toggle green LED during programming */
-            LED_G_TG();
-        }
-    } while((fr == FR_OK) && (num > 0));
+//                LED_G_OFF();
+//                LED_Y_OFF();
+//                return;
+//            }
+//        }
+//        if(cntr % 256 == 0)
+//        {
+//            /* Toggle green LED during programming */
+//            LED_G_TG();
+//        }
+//    } while((fr == FR_OK) && (num > 0));
 
-    /* Step 4: Finalize Programming */
-    Bootloader_FlashEnd();
-    f_close(&SDFile);
-    LED_G_OFF();
-    LED_Y_OFF();
-    PRINT_INF("Programming finished.");
-    sprintf(msg, "Flashed: %lu bytes.", (cntr * 8));
-    PRINT_INF("%s",msg);
+//    /* Step 4: Finalize Programming */
+//    Bootloader_FlashEnd();
+//    f_close(&SDFile);
+//    LED_G_OFF();
+//    LED_Y_OFF();
+//    PRINT_INF("Programming finished.");
+//    sprintf(msg, "Flashed: %lu bytes.", (cntr * 8));
+//    PRINT_INF("%s",msg);
 
-    /* Open file for verification */
-    fr = f_open(&SDFile, CONF_FILENAME, FA_READ);
-    if(fr != FR_OK)
-    {
-        /* f_open failed */
-        PRINT_INF("File cannot be opened.");
-        sprintf(msg, "FatFs error code: %u", fr);
-        PRINT_INF("%s",msg);
+//    /* Open file for verification */
+//    fr = f_open(&SDFile, CONF_FILENAME, FA_READ);
+//    if(fr != FR_OK)
+//    {
+//        /* f_open failed */
+//        PRINT_INF("File cannot be opened.");
+//        sprintf(msg, "FatFs error code: %u", fr);
+//        PRINT_INF("%s",msg);
 
-        SD_Eject();
-        PRINT_INF("SD ejected.");
-        return;
-    }
+//        SD_Eject();
+//        PRINT_INF("SD ejected.");
+//        return;
+//    }
 
-    /* Step 5: Verify Flash Content */
-    addr = APP_ADDRESS;
-    cntr = 0;
-    do
-    {
-        data = 0xFFFFFFFFFFFFFFFF;
-        fr   = f_read(&SDFile, &data, 4, &num);
-        if(num)
-        {
-            if(*(uint32_t*)addr == (uint32_t)data)
-            {
-                addr += 4;
-                cntr++;
-            }
-            else
-            {
-                sprintf(msg, "Verification error at: %lu byte.", (cntr * 4));
-				PRINT_INF("%s",msg);
+//    /* Step 5: Verify Flash Content */
+//    addr = APP_ADDRESS;
+//    cntr = 0;
+//    do
+//    {
+//        data = 0xFFFFFFFFFFFFFFFF;
+//        fr   = f_read(&SDFile, &data, 4, &num);
+//        if(num)
+//        {
+//            if(*(uint32_t*)addr == (uint32_t)data)
+//            {
+//                addr += 4;
+//                cntr++;
+//            }
+//            else
+//            {
+//                sprintf(msg, "Verification error at: %lu byte.", (cntr * 4));
+//				PRINT_INF("%s",msg);
 
-                f_close(&SDFile);
-                SD_Eject();
-                PRINT_INF("SD ejected.");
+//                f_close(&SDFile);
+//                SD_Eject();
+//                PRINT_INF("SD ejected.");
 
-                LED_G_OFF();
-                return;
-            }
-        }
-        if(cntr % 256 == 0)
-        {
-            /* Toggle green LED during verification */
-            LED_G_TG();
-        }
-    } while((fr == FR_OK) && (num > 0));
-    PRINT_INF("Verification passed.");
-    LED_G_OFF();
+//                LED_G_OFF();
+//                return;
+//            }
+//        }
+//        if(cntr % 256 == 0)
+//        {
+//            /* Toggle green LED during verification */
+//            LED_G_TG();
+//        }
+//    } while((fr == FR_OK) && (num > 0));
+//    PRINT_INF("Verification passed.");
+//    LED_G_OFF();
 
-    /* Eject SD card */
-    SD_Eject();
-    PRINT_INF("SD ejected.");
+//    /* Eject SD card */
+//    SD_Eject();
+//    PRINT_INF("SD ejected.");
 
-    /* Enable flash write protection */
-#if(USE_WRITE_PROTECTION)
-    PRINT_INF("Enablig flash write protection and generating system reset...");
-    if(Bootloader_ConfigProtection(BL_PROTECTION_WRP) != BL_OK)
-    {
-        PRINT_INF("Failed to enable write protection.");
-        PRINT_INF("Exiting Bootloader.");
-    }
-#endif
+//    /* Enable flash write protection */
+//#if(USE_WRITE_PROTECTION)
+//    PRINT_INF("Enablig flash write protection and generating system reset...");
+//    if(Bootloader_ConfigProtection(BL_PROTECTION_WRP) != BL_OK)
+//    {
+//        PRINT_INF("Failed to enable write protection.");
+//        PRINT_INF("Exiting Bootloader.");
+//    }
+//#endif
 }
 
 /*** SD Card ******************************************************************/
 uint8_t SD_Init(void)
 {
-    SDCARD_ON();
+//    SDCARD_ON();
 
-    if(FATFS_Init())
-    {
-        /* Error */
-        return 1;
-    }
+//    if(FATFS_Init())
+//    {
+//        /* Error */
+//        return 1;
+//    }
 
     if(BSP_SD_Init())
     {
@@ -623,8 +685,8 @@ uint8_t SD_Init(void)
 void SD_DeInit(void)
 {
     BSP_SD_DeInit();
-    FATFS_DeInit();
-    SDCARD_OFF();
+//    FATFS_DeInit();
+//    SDCARD_OFF();
 }
 
 void SD_Eject(void)
@@ -633,7 +695,7 @@ void SD_Eject(void)
 }
 
 /*** GPIO Configuration ***/
-void GPIO_Init(void)
+void GPIO_Startup(void)
 {
     GPIO_InitTypeDef GPIO_InitStruct;
 
@@ -827,7 +889,12 @@ void HAL_MspInit(void)
 
 int fputc( int ch, FILE *fp ){
 	uint8_t data = (uint8_t)ch;
-	fp = NULL;
+//	fp = NULL;
+	if( (ch>0 && ch<7)
+	||	(ch>13 && ch<27)
+	){
+		data = '?';
+	}
 	HAL_USART_Transmit( &console_usart_handle, &data, 1, 100 );
 	return (ch);
 }

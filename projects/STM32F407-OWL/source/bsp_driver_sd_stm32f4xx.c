@@ -352,19 +352,19 @@ __weak void BSP_SD_ErrorCallback(void)
  * @brief BSP Rx Transfer completed callback
  * @retval None
  */
-__weak void BSP_SD_ReadCpltCallback(void)
-{
-    // redefined in sd_diskio
-}
+//__weak void BSP_SD_ReadCpltCallback(void)
+//{
+//    // redefined in sd_diskio
+//}
 
 /**
  * @brief BSP Tx Transfer completed callback
  * @retval None
  */
-__weak void BSP_SD_WriteCpltCallback(void)
-{
-    // redefined in sd_diskio
-}
+//__weak void BSP_SD_WriteCpltCallback(void)
+//{
+//    // redefined in sd_diskio
+//}
 
 /**
  * @brief Initializes the SD MSP.
