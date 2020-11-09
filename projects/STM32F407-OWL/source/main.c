@@ -360,7 +360,7 @@ int main(void)
 		PRINT_RAW("NOTFOUND");
 	}
 	PRINT_RAW("\r\n");
-
+/*
 	PRINT_RAW("Checking for App 2......");
     // Check if there is application in user flash area
     if(Bootloader_CheckForApp2() == BL_OK){
@@ -377,7 +377,8 @@ int main(void)
 		PRINT_RAW("NOTFOUND");
 	}
 	PRINT_RAW("\r\n");
-
+*/
+/*
 	// Check if backup app are the same.
 	bool isApp2TheSameAsApp1 = false;
 	if( app1_available && app2_available ){
@@ -402,7 +403,8 @@ int main(void)
 			Bootloader_JumpToApp1();
 		}
 	}
-	
+*/
+/*
 	// Recover from backup app
 	while( !app1_available && app2_available ){
 		
@@ -425,9 +427,9 @@ int main(void)
 		}
 		HAL_Delay(2000);
 	}
-	
-	
-	// Backup current app 1
+*/
+
+	// Launch app 1
 	if( app1_available && !app2_available ){
 		PRINT_RAW("Launching App 1.\r\n");
 		SD_DeInit();
@@ -673,18 +675,18 @@ uint8_t SD_Init(void)
 //        return 1;
 //    }
 
-    if(BSP_SD_Init())
-    {
-        /* Error */
-        return 2;
-    }
+//    if(BSP_SD_Init())
+//    {
+//        /* Error */
+//        return 2;
+//    }
 
     return 0;
 }
 
 void SD_DeInit(void)
 {
-    BSP_SD_DeInit();
+//    BSP_SD_DeInit();
 //    FATFS_DeInit();
 //    SDCARD_OFF();
 }

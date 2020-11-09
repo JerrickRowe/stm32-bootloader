@@ -614,6 +614,7 @@ void Bootloader_JumpToApp1(void)
 #if(SET_VECTOR_TABLE)
     SCB->VTOR = APP1_ADDRESS;
 #endif
+	NVIC->ICER[0] = 0xFFFFFFFF; // Disable all NVIC interrupts
     __set_MSP(*(__IO uint32_t*)APP1_ADDRESS);
     JumpAddress = *(__IO uint32_t*)(APP1_ADDRESS + 4);
 	Jump        = (pFunction)JumpAddress;
@@ -628,7 +629,7 @@ void Bootloader_JumpToApp1(void)
  *  - Set the vector table location (if ::SET_VECTOR_TABLE is enabled)
  *  - Sets the stack pointer location
  *  - Perform the jump
- */
+ *//*
 void Bootloader_JumpToApp2(void)
 {
     HAL_RCC_DeInit();
@@ -639,12 +640,13 @@ void Bootloader_JumpToApp2(void)
 #if(SET_VECTOR_TABLE)
     SCB->VTOR = APP2_ADDRESS;
 #endif
+	NVIC->ICER[0] = 0xFFFFFFFF; // Disable all NVIC interrupts
     __set_MSP(*(__IO uint32_t*)APP2_ADDRESS);
     JumpAddress = *(__IO uint32_t*)(APP2_ADDRESS + 4);
 	Jump        = (pFunction)JumpAddress;
     Jump();
 }
-
+*/
 /**
  * @brief  This function performs the jump to the MCU System Memory (ST
  *         Bootloader).
@@ -665,6 +667,7 @@ void Bootloader_JumpToSysMem(void)
 
     __HAL_RCC_SYSCFG_CLK_ENABLE();
     __HAL_SYSCFG_REMAPMEMORY_SYSTEMFLASH();
+	NVIC->ICER[0] = 0xFFFFFFFF; // Disable all NVIC interrupts
 
     __set_MSP(*(__IO uint32_t*)SYSMEM_ADDRESS);
     JumpAddress = *(__IO uint32_t*)(SYSMEM_ADDRESS + 4);

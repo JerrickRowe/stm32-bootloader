@@ -69,11 +69,11 @@
 
 
 #define APP1_ADDRESS	(0x08020000u)
-#define APP1_SIZE		(0x60000u-4u)
+#define APP1_SIZE		(0xC0000u-4u)
 #define APP1_CRC_ADDR	(APP1_ADDRESS+APP1_SIZE)
 
-#define APP2_ADDRESS	(0x08080000u)
-#define APP2_SIZE		(0x60000u-4u)
+#define APP2_ADDRESS	(0x080E0000u)
+#define APP2_SIZE		(0x20000u-4u)
 #define APP2_CRC_ADDR	(APP2_ADDRESS+APP2_SIZE)
 
 /** @} */

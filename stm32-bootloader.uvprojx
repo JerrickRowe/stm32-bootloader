@@ -933,11 +933,6 @@
               <FileType>1</FileType>
               <FilePath>.\lib\fatfs\ff14_port\testcases.c</FilePath>
             </File>
-            <File>
-              <FileName>sdio_stm32f4xx.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\lib\fatfs\ff14_port\sdio_stm32f4xx.c</FilePath>
-            </File>
           </Files>
         </Group>
       </Groups>
