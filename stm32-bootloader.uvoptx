@@ -152,34 +152,18 @@
         <Bp>
           <Number>0</Number>
           <Type>0</Type>
-          <LineNumber>316</LineNumber>
+          <LineNumber>467</LineNumber>
           <EnabledFlag>1</EnabledFlag>
-          <Address>134231160</Address>
+          <Address>134226108</Address>
           <ByteObject>0</ByteObject>
           <HtxType>0</HtxType>
           <ManyObjects>0</ManyObjects>
           <SizeOfObject>0</SizeOfObject>
           <BreakByAccess>0</BreakByAccess>
           <BreakIfRCount>1</BreakIfRCount>
-          <Filename>.\projects\STM32F407-OWL\source\main.c</Filename>
+          <Filename>.\drivers\STM32F4xx_HAL_Driver\Src\stm32f4xx_hal_rcc.c</Filename>
           <ExecCommand></ExecCommand>
-          <Expression>\\stm32_bootloader\projects/STM32F407-OWL/source/main.c\316</Expression>
-        </Bp>
-        <Bp>
-          <Number>1</Number>
-          <Type>0</Type>
-          <LineNumber>874</LineNumber>
-          <EnabledFlag>1</EnabledFlag>
-          <Address>134222972</Address>
-          <ByteObject>0</ByteObject>
-          <HtxType>0</HtxType>
-          <ManyObjects>0</ManyObjects>
-          <SizeOfObject>0</SizeOfObject>
-          <BreakByAccess>0</BreakByAccess>
-          <BreakIfRCount>1</BreakIfRCount>
-          <Filename>.\projects\STM32F407-OWL\source\main.c</Filename>
-          <ExecCommand></ExecCommand>
-          <Expression>\\stm32_bootloader\projects/STM32F407-OWL/source/main.c\874</Expression>
+          <Expression>\\stm32_bootloader\drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_rcc.c\467</Expression>
         </Bp>
       </Breakpoint>
       <WatchWindow1>

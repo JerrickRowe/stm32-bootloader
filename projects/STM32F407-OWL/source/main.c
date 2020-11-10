@@ -26,6 +26,8 @@
 #include <string.h>
 #include <ctype.h>
 
+#include "git.h"
+
 #include "testcases.h"
 
 #define DEBUG 1
@@ -111,7 +113,7 @@ const char* get_version_string( void ){
 		"            __/ |                      \r\n"
 		"           |___/                       \r\n"
 	);
-	snprintf( str, sizeof(str), "%s-V%d.%d-", PRJ_STR, VER, REV );
+	snprintf( str, sizeof(str), "%s-V%d.%d-%s-", PRJ_STR, VER, REV, GIT_COMMIT_HEAD );
 	getBuildTimeStr_YYYYMMDDhhss(str+strlen(str));
 	return str;
 }
@@ -799,6 +801,8 @@ void SystemClock_Config(void)
     RCC_ClkInitTypeDef       RCC_ClkInitStruct;
     RCC_PeriphCLKInitTypeDef PeriphClkInit;
 
+	HAL_RCC_DeInit();
+	
     /* Initializes the CPU, AHB and APB bus clocks */
 #if defined(STM32F4)
     RCC_OscInitStruct.OscillatorType      = RCC_OSCILLATORTYPE_HSE;	
@@ -827,7 +831,7 @@ void SystemClock_Config(void)
 #endif
     if(HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
     {
-        Error_Handler();
+//        Error_Handler();
     }
 
     RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK |
@@ -839,7 +843,7 @@ void SystemClock_Config(void)
 
     if(HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_4) != HAL_OK)
     {
-        Error_Handler();
+//        Error_Handler();
     }
 
 //    PeriphClkInit.PeriphClockSelection    = RCC_PERIPHCLK_SDMMC1;
@@ -853,7 +857,7 @@ void SystemClock_Config(void)
 //    PeriphClkInit.PLLSAI1.PLLSAI1ClockOut = RCC_PLLSAI1_48M2CLK;
 //    if(HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
 //    {
-//        Error_Handler();
+//        Error_Handler();HAL_RCC_OscConfig
 //    }
 
     /* Configure the main internal regulator output voltage */
