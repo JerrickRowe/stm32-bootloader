@@ -58,12 +58,36 @@ static int test_diskio (
     for (cc = 1; cc <= ncyc; cc++) {
         printf("**** Test cycle %u of %u start ****\r\n", cc, ncyc);
 
+        printf("**** Get drive status ****\r\n");
+        printf(" disk_status(%u)", pdrv);
+        ds = disk_status(pdrv);
+        if (ds & STA_NOINIT) {
+            printf(" - NOINIT.\r\n");
+        } else if( ds & STA_PROTECT ) {
+            printf(" - PROTECT.\r\n");
+        }else {
+            printf(" - ok.\r\n");
+        }
+
+        printf("**** Initialize drive ****\r\n");
         printf(" disk_initalize(%u)", pdrv);
         ds = disk_initialize(pdrv);
         if (ds & STA_NOINIT) {
             printf(" - failed.\r\n");
             return 2;
         } else {
+            printf(" - ok.\r\n");
+        }
+
+        printf("**** Get drive status ****\r\n");
+        printf(" disk_status(%u)", pdrv);
+        ds = disk_status(pdrv);
+        if (ds & STA_NOINIT) {
+            printf(" - NOINIT.\r\n");
+            return 2;
+        } else if( ds & STA_PROTECT ) {
+            printf(" - PROTECT.\r\n");
+        }else {
             printf(" - ok.\r\n");
         }
 

@@ -53,13 +53,12 @@ static uint8_t BTNcounter = 0;
 #define PRJ_STR	"FlyFire-bootloader"
 
 /* External variables --------------------------------------------------------*/
-char  SDPath[4]; /* SD logical drive path */
+char  SDPath[4] = {1,1,1,1}; /* SD logical drive path */
 FATFS SDFatFs;   /* File system object for SD logical drive */
 FIL   SDFile;    /* File object for SD */
 
 /* Function prototypes -------------------------------------------------------*/
 void    Enter_Bootloader(void);
-uint8_t SD_Init(void);
 void    SD_DeInit(void);
 void    SD_Eject(void);
 void    GPIO_Startup(void);
@@ -164,13 +163,7 @@ void MountFilesystem( void ){
     uint32_t cntr;
     uint32_t addr;
     char     msg[40] = {0x00};
-    /* Initialize SD card */
-//    if(SD_Init())
-//    {
-//        /* SD init failed */
-//        PRINT_INF("INIT_FAILED");
-//        return;
-//    }
+    
 
     /* Mount SD card */
     fr = f_mount(&SDFatFs, (TCHAR const*)SDPath, 1);

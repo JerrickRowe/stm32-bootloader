@@ -418,6 +418,11 @@
               <FileType>2</FileType>
               <FilePath>.\projects\STM32F407-OWL\startup\startup_stm32f40_41xxx.s</FilePath>
             </File>
+            <File>
+              <FileName>bsp_driver_sd_stm32f4xx.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\projects\STM32F407-OWL\source\bsp_driver_sd_stm32f4xx.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

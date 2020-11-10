@@ -9,6 +9,7 @@
 
 #include "ff.h"			/* Obtains integer types */
 #include "diskio.h"		/* Declarations of disk functions */
+#include "bsp_driver_sd.h"
 
 /* Definitions of physical drive number for each drive */
 #define DEV_RAM		0	/* Example: Map Ramdisk to physical drive 0 */
@@ -37,10 +38,12 @@ DSTATUS disk_status (
 
 	case DEV_MMC :
 		result = MMC_disk_status();
-
 		// translate the reslut code here
-
-		return stat;
+		switch( result ){
+		case 0: return STA_NOINIT;
+		case 1: return 0;
+		case 2: return STA_PROTECT;
+		}
 
 	// case DEV_USB :
 	// 	result = USB_disk_status();
@@ -75,9 +78,15 @@ DSTATUS disk_initialize (
 
 	case DEV_MMC :
 		result = MMC_disk_initialize();
-
 		// translate the reslut code here
-
+		switch(result){
+		case MSD_OK:
+			stat = RES_OK;
+			break;
+		default:
+			stat = RES_ERROR;
+			break; 
+		}
 		return stat;
 
 	// case DEV_USB :
@@ -172,7 +181,6 @@ DRESULT disk_write (
 
 	case DEV_MMC :
 		// translate the arguments here
-
 		result = MMC_disk_write(buff, sector, count);
 
 		// translate the reslut code here
@@ -211,7 +219,7 @@ DRESULT disk_ioctl (
 {
 	DRESULT res;
 	int result;
-
+    BSP_SD_CardInfo CardInfo;
 	switch (pdrv) {
 	// case DEV_RAM :
 
@@ -224,22 +232,28 @@ DRESULT disk_ioctl (
 		switch( cmd ){
 		case CTRL_SYNC			:	//0	/* Complete pending write process (needed at FF_FS_READONLY == 0) */
 		#if FF_FS_READONLY == 0
+			while( BSP_SD_GetCardState() == SD_TRANSFER_BUSY ){
+
+			}
 //			res = RES_NOTRDY;
 			res = RES_OK;
 		#else
 			res = RES_OK;
 		#endif
 			break;
-		case GET_SECTOR_COUNT	:	//1	/* Get media size (needed at FF_USE_MKFS == 1) */
-			*(UINT*)buff = 1024;
+		case GET_SECTOR_COUNT	:{	//1	/* Get media size (needed at FF_USE_MKFS == 1) */
+            BSP_SD_GetCardInfo(&CardInfo);
+            *(DWORD*)buff = CardInfo.LogBlockNbr;
 			res = RES_OK;
 			break;
-		case GET_SECTOR_SIZE	:	//2	/* Get sector size (needed at FF_MAX_SS != FF_MIN_SS) */
-			*(WORD*)buff = 512;
+		}case GET_SECTOR_SIZE	:	//2	/* Get sector size (needed at FF_MAX_SS != FF_MIN_SS) */
+            BSP_SD_GetCardInfo(&CardInfo);
+            *(DWORD*)buff = CardInfo.BlockSize;
 			res = RES_OK;
 			break;
 		case GET_BLOCK_SIZE		:	//3	/* Get erase block size (needed at FF_USE_MKFS == 1) */
-			*(DWORD*)buff = 512;
+            BSP_SD_GetCardInfo(&CardInfo);
+            *(DWORD*)buff = CardInfo.LogBlockSize/CardInfo.BlockSize;
 			res = RES_OK;
 			break;
 		case CTRL_TRIM			:	//4	/* Inform device that the data on the block of sectors is no longer used (needed at FF_USE_TRIM == 1) */

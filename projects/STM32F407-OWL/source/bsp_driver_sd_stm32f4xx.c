@@ -48,7 +48,7 @@ uint8_t BSP_SD_Init(void)
     hsd1.Init.ClockPowerSave      = SDIO_CLOCK_POWER_SAVE_DISABLE;
     hsd1.Init.BusWide             = SDIO_BUS_WIDE_1B;
     hsd1.Init.HardwareFlowControl = SDIO_HARDWARE_FLOW_CONTROL_ENABLE;
-    hsd1.Init.ClockDiv            = 0;
+    hsd1.Init.ClockDiv            = 8;
 
     for(tries = 0; tries < 5; ++tries)
     {
@@ -63,7 +63,7 @@ uint8_t BSP_SD_Init(void)
         }
 
         /* Enable wide operation */
-        if(HAL_SD_ConfigWideBusOperation(&hsd1, SDIO_BUS_WIDE_1B) != HAL_OK)
+        if(HAL_SD_ConfigWideBusOperation(&hsd1, SDIO_BUS_WIDE_4B) != HAL_OK)
         {
             /* Retry */
             continue;
@@ -287,6 +287,21 @@ void BSP_SD_GetCardInfo(BSP_SD_CardInfo* CardInfo)
  */
 uint8_t BSP_SD_IsDetected(void)
 {
+    GPIO_InitTypeDef GPIO_InitStruct = {0};
+	static uint8_t isInit = 1;
+	if( isInit ){
+		/* Insertion detecting pin */
+		__HAL_RCC_GPIOA_CLK_ENABLE();
+		GPIO_InitStruct.Pull = GPIO_PULLUP;
+		GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+		GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+		GPIO_InitStruct.Pin = GPIO_PIN_4;
+		HAL_GPIO_Init(GPIOA,&GPIO_InitStruct); 
+		isInit = 0;
+	}
+	if( HAL_GPIO_ReadPin(GPIOA,GPIO_PIN_4) == SET ){
+		return SD_NOT_PRESENT;
+	}
     return SD_PRESENT;
 }
 

@@ -3206,7 +3206,7 @@ static int get_ldnumber (	/* Returns logical drive number (-1:invalid drive numb
 #if FF_FS_RPATH != 0
 	vol = CurrVol;	/* Default drive is current drive */
 #else
-	vol = 0;		/* Default drive is 0 */
+	vol = 1;		/* Default drive is 0 */
 #endif
 	return vol;		/* Return the default drive */
 }
