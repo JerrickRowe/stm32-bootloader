@@ -152,7 +152,7 @@ int testcase_4 ( void );
 
 void MountFilesystem( void ){
 	
-	testcase_4();
+	// testcase_4();
 	
     PRINT_RAW("Mount SD card and FatFS........");
     FRESULT  fr;
