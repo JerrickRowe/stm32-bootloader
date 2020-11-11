@@ -53,7 +53,7 @@ static uint8_t BTNcounter = 0;
 #define PRJ_STR	"FlyFire-bootloader"
 
 /* External variables --------------------------------------------------------*/
-char  SDPath[4] = {1,1,1,1}; /* SD logical drive path */
+char  SDPath[4] = "SD:"; /* SD logical drive path */
 FATFS SDFatFs;   /* File system object for SD logical drive */
 FIL   SDFile;    /* File object for SD */
 
@@ -146,6 +146,41 @@ uint32_t HAL_GetTick(void)
   return tick;
 }
 
+FRESULT scan_files ( char* path ){       /* Start node to be scanned (***also used as work area***) */
+    FRESULT res;
+    DIR dir;
+    UINT i;
+    static FILINFO fno;
+
+    res = f_opendir(&dir, path);                       /* Open the directory */
+    if (res == FR_OK) {
+        for (;;) {
+            res = f_readdir(&dir, &fno);                   /* Read a directory item */
+            if (res != FR_OK || fno.fname[0] == 0) break;  /* Break on error or end of dir */
+            if (fno.fattrib & AM_DIR) {                    /* It is a directory */
+                i = strlen(path);
+                sprintf(&path[i], "/%s", fno.fname);
+                res = scan_files(path);                    /* Enter the directory */
+                if (res != FR_OK) break;
+                path[i] = 0;
+            } else {                                       /* It is a file. */
+                PRINT_RAW("%s/%s\r\n", path, fno.fname);
+            }
+        }
+        f_closedir(&dir);
+    }
+    return res;
+}
+
+int ls( int argc, char** argv ){
+    FRESULT  res;
+	DIR dir;
+	FILINFO fno;
+	char path[100] = "SD:";
+	int i;
+	scan_files( path );
+	return 0;
+}
 
 
 int testcase_4 ( void );
@@ -155,7 +190,7 @@ void MountFilesystem( void ){
 	// testcase_4();
 	
     PRINT_RAW("Mount SD card and FatFS........");
-    FRESULT  fr;
+    FRESULT  res;
     UINT     num;
     uint8_t  i;
     uint8_t  status;
@@ -166,11 +201,11 @@ void MountFilesystem( void ){
     
 
     /* Mount SD card */
-    fr = f_mount(&SDFatFs, (TCHAR const*)SDPath, 1);
-    if(fr != FR_OK)
+    res = f_mount(&SDFatFs, (TCHAR const*)SDPath, 1);
+    if(res != FR_OK)
     {
         /* f_mount failed */
-        PRINT_INF("MNT_FAILED [0x%02X]",fr);
+        PRINT_INF("MNT_FAILED [0x%02X]",res);
         return;
     }
     PRINT_INF("DONE");
@@ -214,55 +249,82 @@ bool VerifyUpgradeFile( FIL *fp ){
 	if( !fp ){
 		return false;
 	}
+	if( f_size( fp ) < APP1_SIZE+4 ){
+		PRINT_ERR( "", "Incorrect file size" );
+		return false;
+	}
+
+	UINT br = 0;
+	uint8_t buff[512];
+	FRESULT res;
+
+    CRC_HandleTypeDef CrcHandle;
+    volatile uint32_t calculatedCrc = 0;
+    __HAL_RCC_CRC_CLK_ENABLE();
+    CrcHandle.Instance                     = CRC;
+    CrcHandle.State                        = HAL_CRC_STATE_RESET;
+    if(HAL_CRC_Init(&CrcHandle) != HAL_OK){
+		PRINT_ERR( "", "CRC init error" );
+		goto ERROR;
+    }
+	f_rewind(fp);
+	uint32_t scan = 0;
+	uint32_t boundary = (APP1_SIZE+4)/512;
+	for( scan=0; scan<boundary; scan++ ){
+		res = f_read( fp, buff, 512, &br );
+		if(res!=FR_OK || br!=512){
+			PRINT_ERR( "", "f_read #1 error [0x%02X] byte read=%d", res, br );
+			goto ERROR;
+		}
+		// Decryption 
+
+		// Verification
+		if( scan == 0 ){ // First unit
+			if( ((*(uint32_t*)buff - RAM_BASE) > RAM_SIZE) ){
+				PRINT_ERR( "Bad MSP[0x%08X]", *(uint32_t*)buff );
+				goto ERROR;
+			}
+			calculatedCrc = HAL_CRC_Accumulate(&CrcHandle, (uint32_t*)buff, 512/4);
+		}else if( scan == boundary-1 ){ // Last unit
+			calculatedCrc = HAL_CRC_Accumulate(&CrcHandle, (uint32_t*)buff, (512-4)/4);
+		}else{
+			calculatedCrc = HAL_CRC_Accumulate(&CrcHandle, (uint32_t*)buff, 512/4);
+		}
+	}
+
+    if( *(uint32_t*)&(buff[512-4]) == calculatedCrc ){
+        return true;
+    }
+	PRINT_ERR( "CRC failed [0x%08X]", calculatedCrc );
+ERROR:
+    __HAL_RCC_CRC_FORCE_RESET();
+    __HAL_RCC_CRC_RELEASE_RESET();
 	return false;
 }
 
 
 static FIL upgrade_file;
 bool UpdateApp2( void ){
-	FRESULT fr;
+	FRESULT res;
 	FILINFO file_info;
 	FILINFO fno;
 	
 	PRINT_INF(	"List files:" );
+	ls( 1, "SD:" );
 	
-	
-	
-	DIR dir;
-    fr = f_opendir(&dir, "/");                       /* Open the directory */
-    if (fr == FR_OK) {
-		uint32_t i;
-        for (;;) {
-            fr = f_readdir(&dir, &fno);                   /* Read a directory item */
-            if (fr != FR_OK || fno.fname[0] == 0) break;  /* Break on error or end of dir */
-            if (fno.fattrib & AM_DIR) {                    /* It is a directory */
-				PRINT_INF(	"#%s"
-				,	fno.fname
-				);
-            } else {                                       /* It is a file. */
-				PRINT_INF(	"%s, %dbytes"
-				,	fno.fname
-				,	fno.fsize
-				);
-            }
-        }
-        f_closedir(&dir);
-    }
-	
-	PRINT_RAW("Create \"%s\"......", UPGRADE_FILENAME);
-	fr = f_open(&upgrade_file, UPGRADE_FILENAME, FA_READ | FA_WRITE | FA_CREATE_ALWAYS);
-    if(fr != FR_OK){
-		PRINT_INF("FAILED");
-	}else{
+	// PRINT_RAW("Create \"%s\"......", UPGRADE_FILENAME);
+	// res = f_open(&upgrade_file, UPGRADE_FILENAME, FA_READ | FA_WRITE | FA_CREATE_ALWAYS);
+    // if(res != FR_OK){
+	// 	PRINT_INF("FAILED");
+	// }else{
 		
-		PRINT_INF("DONE");
-		f_close(&upgrade_file);
-	}
-	return false;
+	// 	PRINT_INF("DONE");
+	// 	f_close(&upgrade_file);
+	// }
 	
 	PRINT_RAW("Finding \"%s\"......", UPGRADE_FILENAME);
-	fr = f_stat(UPGRADE_FILENAME, &file_info);
-    if(fr != FR_OK){
+	res = f_stat(UPGRADE_FILENAME, &file_info);
+    if(res != FR_OK){
 		PRINT_INF("NOTFOUND");
         return false;
 	}
@@ -273,8 +335,8 @@ bool UpdateApp2( void ){
 	);
 	
 	PRINT_RAW("Opening \"%s\"......", UPGRADE_FILENAME);
-	fr = f_open(&upgrade_file, UPGRADE_FILENAME, FA_READ);
-	if( fr != FR_OK ){
+	res = f_open(&upgrade_file, UPGRADE_FILENAME, FA_READ);
+	if( res != FR_OK ){
 		PRINT_INF("FAILED");
 		return false;
 	}
@@ -284,18 +346,19 @@ bool UpdateApp2( void ){
 	if( VerifyUpgradeFile(&upgrade_file) == false ){
 		PRINT_INF("FAILED");
 		f_close(&upgrade_file);
-		PRINT_RAW("Delete %s........", UPGRADE_FILENAME);
-		f_unlink(UPGRADE_FILENAME);
-		fr = f_stat(UPGRADE_FILENAME, &file_info);
-		if(fr != FR_OK){
-			PRINT_INF("DONE");
-		}else{
-			PRINT_INF("FAILED");
-		}
+		// PRINT_RAW("Delete %s........", UPGRADE_FILENAME);
+		// f_unlink(UPGRADE_FILENAME);
+		// res = f_stat(UPGRADE_FILENAME, &file_info);
+		// if(res != FR_OK){
+		// 	PRINT_INF("DONE");
+		// }else{
+		// 	PRINT_INF("FAILED");
+		// }
 		return false;
 	}
 	PRINT_INF("PASS");
 	
+	return false;
 	
 	
 	Copy_App2_To_App1();
@@ -318,12 +381,9 @@ int main(void)
 
 	led_allon();
 	
-	
 	MountFilesystem();
 
-	
-	/*
-	char *cwd[50];
+	char cwd[50];
 	f_getcwd(cwd,50);
 	PRINT_RAW("Current path: \"%s\"\r\n", cwd);
 	
@@ -335,7 +395,7 @@ int main(void)
 		// Launch application 
 		Bootloader_JumpToApp1();
 	}
-	*/
+	
 	static bool app1_available = false;
 	static bool app2_available = false;
 
@@ -447,7 +507,7 @@ int main(void)
 
 void Enter_Bootloader(void)
 {
-//    FRESULT  fr;
+//    FRESULT  res;
 //    UINT     num;
 //    uint8_t  i;
 //    uint8_t  status;
@@ -489,24 +549,24 @@ void Enter_Bootloader(void)
 //    }
 
 //    /* Mount SD card */
-//    fr = f_mount(&SDFatFs, (TCHAR const*)SDPath, 1);
-//    if(fr != FR_OK)
+//    res = f_mount(&SDFatFs, (TCHAR const*)SDPath, 1);
+//    if(res != FR_OK)
 //    {
 //        /* f_mount failed */
 //        PRINT_INF("SD card cannot be mounted.");
-//        sprintf(msg, "FatFs error code: %u", fr);
+//        sprintf(msg, "FatFs error code: %u", res);
 //        PRINT_INF("%s",msg);
 //        return;
 //    }
 //    PRINT_INF("SD mounted.");
 
 //    /* Open file for programming */
-//    fr = f_open(&SDFile, CONF_FILENAME, FA_READ);
-//    if(fr != FR_OK)
+//    res = f_open(&SDFile, CONF_FILENAME, FA_READ);
+//    if(res != FR_OK)
 //    {
 //        /* f_open failed */
 //        PRINT_INF("File cannot be opened.");
-//        sprintf(msg, "FatFs error code: %u", fr);
+//        sprintf(msg, "FatFs error code: %u", res);
 //        PRINT_INF("%s",msg);
 
 //        SD_Eject();
@@ -556,7 +616,7 @@ void Enter_Bootloader(void)
 //    do
 //    {
 //        data = 0xFFFFFFFFFFFFFFFF;
-//        fr   = f_read(&SDFile, &data, 8, &num);
+//        res   = f_read(&SDFile, &data, 8, &num);
 //        if(num)
 //        {
 //            status = Bootloader_FlashNext(data);
@@ -583,7 +643,7 @@ void Enter_Bootloader(void)
 //            /* Toggle green LED during programming */
 //            LED_G_TG();
 //        }
-//    } while((fr == FR_OK) && (num > 0));
+//    } while((res == FR_OK) && (num > 0));
 
 //    /* Step 4: Finalize Programming */
 //    Bootloader_FlashEnd();
@@ -595,12 +655,12 @@ void Enter_Bootloader(void)
 //    PRINT_INF("%s",msg);
 
 //    /* Open file for verification */
-//    fr = f_open(&SDFile, CONF_FILENAME, FA_READ);
-//    if(fr != FR_OK)
+//    res = f_open(&SDFile, CONF_FILENAME, FA_READ);
+//    if(res != FR_OK)
 //    {
 //        /* f_open failed */
 //        PRINT_INF("File cannot be opened.");
-//        sprintf(msg, "FatFs error code: %u", fr);
+//        sprintf(msg, "FatFs error code: %u", res);
 //        PRINT_INF("%s",msg);
 
 //        SD_Eject();
@@ -614,7 +674,7 @@ void Enter_Bootloader(void)
 //    do
 //    {
 //        data = 0xFFFFFFFFFFFFFFFF;
-//        fr   = f_read(&SDFile, &data, 4, &num);
+//        res   = f_read(&SDFile, &data, 4, &num);
 //        if(num)
 //        {
 //            if(*(uint32_t*)addr == (uint32_t)data)
@@ -640,7 +700,7 @@ void Enter_Bootloader(void)
 //            /* Toggle green LED during verification */
 //            LED_G_TG();
 //        }
-//    } while((fr == FR_OK) && (num > 0));
+//    } while((res == FR_OK) && (num > 0));
 //    PRINT_INF("Verification passed.");
 //    LED_G_OFF();
 

@@ -7,7 +7,7 @@
 /* File name of application located on SD card */
 #define CONF_FILENAME "config.txt"
 
-#define UPGRADE_FILENAME	"/upgrade.bin"
+#define UPGRADE_FILENAME	"SD:/upgrade.bin"
 /* For development/debugging: stdout/stderr via SWO trace */
 #define USE_SWO_TRACE 0
 /******************************************************************************/
