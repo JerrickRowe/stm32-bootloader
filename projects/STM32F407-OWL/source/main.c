@@ -62,6 +62,9 @@ FATFS SDFatFs;   /* File system object for SD logical drive */
 FIL   SDFile;    /* File object for SD */
 static FIL upgrade_file;
 
+/* Private variables ---------------------------------------------------------*/
+bool renew_freefile = false;
+
 /* Function prototypes -------------------------------------------------------*/
 void    Enter_Bootloader(void);
 void    SD_DeInit(void);
@@ -260,8 +263,6 @@ bool Copy_File_To_App1( FIL* fp ){
 	uint32_t scan = 0;
 	uint32_t boundary = (APP1_SIZE+4)/512;
 	
-
-
 	Bootloader_FlashBegin();
 	for( scan=0; scan<boundary; scan++ ){
 		res = f_read( fp, buff, 512, &br );
@@ -324,7 +325,7 @@ bool VerifyUpgradeFile( FIL* fp ){
 	for( scan=0; scan<boundary; scan++ ){
 		res = f_read( fp, buff, 512, &br );
 		if(res!=FR_OK || br!=512){
-			PRINT_ERR( "  f_read error [0x%02X] byte read=%d", res, br );
+			PRINT_ERR( "f_read error [0x%02X] byte read=%d", res, br );
 			goto ERROR;
 		}
 		// Decryption 
@@ -334,7 +335,7 @@ bool VerifyUpgradeFile( FIL* fp ){
 		// Verification
 		if( scan == 0 ){ // First unit
 			if( ((*(uint32_t*)buff - RAM_BASE) > RAM_SIZE) ){
-				PRINT_ERR( "  Bad MSP[0x%08X]", *(uint32_t*)buff );
+				PRINT_ERR( "Bad MSP[0x%08X]", *(uint32_t*)buff );
 				goto ERROR;
 			}
 			calculatedCrc = HAL_CRC_Accumulate(&CrcHandle, (uint32_t*)buff, 512/4);
@@ -349,7 +350,7 @@ bool VerifyUpgradeFile( FIL* fp ){
 	}
 
     if( *(uint32_t*)&(buff[512-4]) != calculatedCrc ){
-		PRINT_ERR( "  CRC failed [0x%08X]", calculatedCrc );
+		PRINT_RAW( "CRC failed [0x%08X]", calculatedCrc );
 		goto ERROR;
     }
 	PRINT_RAW( "Pass\r\n" );
@@ -369,6 +370,23 @@ bool IsUpgradeFileExists( void ){
 	FILINFO fno;
 	PRINT_RAW("Finding \"%s\"......", UPGRADE_FILENAME);
 	res = f_stat(UPGRADE_FILENAME, &fno);
+    if(res != FR_OK){
+		PRINT_INF("NOTFOUND");
+        return false;
+	}
+	PRINT_INF("FOUND");
+	PRINT_INF("  %s %dbytes"
+	,	fno.fname
+	,	fno.fsize
+	);
+	return true;
+}
+
+bool IsBackupFileExists( void ){
+	FRESULT res;
+	FILINFO fno;
+	PRINT_RAW("Finding \"%s\".......", BACKUP_FILENAME);
+	res = f_stat(BACKUP_FILENAME, &fno);
     if(res != FR_OK){
 		PRINT_INF("NOTFOUND");
         return false;
@@ -408,12 +426,9 @@ bool UpgradeFromSD( void ){
 	FILINFO file_info;
 	FILINFO fno;
 	
-	// PRINT_INF(	"List files:" );
-	// ls( 1, "SD:" );
 	if( IsUpgradeFileExists() == false ){
 		return false;
 	}
-
 	PRINT_RAW("Opening \"%s\"......", UPGRADE_FILENAME);
 	res = f_open(&upgrade_file, UPGRADE_FILENAME, FA_READ);
 	if( res != FR_OK ){
@@ -436,16 +451,59 @@ bool UpgradeFromSD( void ){
 	}
 
 	PRINT_RAW("Backing up......", UPGRADE_FILENAME);
+	res = f_unlink( BACKUP_FILENAME );
 	res = f_rename( UPGRADE_FILENAME, BACKUP_FILENAME );
 	if( res != FR_OK ){
 		PRINT_RAW("FAILED\r\n");
+	}else{
+		PRINT_RAW("DONE\r\n");
+		f_chmod( BACKUP_FILENAME, AM_ARC|AM_SYS|AM_HID, AM_ARC|AM_SYS|AM_HID );
 	}
-	PRINT_RAW("DONE\r\n");
-	PRINT_RAW("Backup filename: %s\r\n", BACKUP_FILENAME);
 
+	
+	PRINT_RAW("Backup filename: %s\r\n", BACKUP_FILENAME);
 	return true;
 }
 
+
+
+
+
+
+void LaunchApp1( void ){
+	do{
+		if( renew_freefile != true ){
+			break;
+		}
+		FRESULT res;
+		FILINFO fno;
+		const char* path_freefile = "SD:/FREESPAC.E";
+		PRINT_RAW( "Freefile should be renewed....." );
+		res = f_stat(path_freefile, &fno);
+		if(res != FR_OK){
+			PRINT_INF("NOTFOUND");
+			break;
+		}
+		PRINT_RAW("FOUND\r\n");
+		PRINT_RAW("  %s %dbytes\r\n", fno.fname, fno.fsize );
+		PRINT_RAW("  Delete %s........", path_freefile );
+		res = f_chmod( path_freefile, 0, AM_RDO );
+		if( res != FR_OK ){
+			PRINT_RAW( "chmod failed...." );
+		}
+		res = f_unlink( path_freefile );
+		if( res == FR_OK ){
+			PRINT_RAW( "Done\r\n" );
+		}else{
+			PRINT_RAW( "Failed\r\n" );
+		}
+	}while(0);
+	PRINT_RAW("Launching App 1.\r\n");
+	SD_DeInit();
+	GPIO_DeInit();
+	// Launch application 
+	Bootloader_JumpToApp1();
+}
 
 
 /* Main ----------------------------------------------------------------------*/
@@ -458,111 +516,39 @@ int main(void)
 	
 	led_init();
     PRINT_RAW("%s\r\n",get_version_string());
-
 	led_allon();
 	
 	MountFilesystem();
 
-	// char cwd[50];
-	// f_getcwd(cwd,50);
-	// PRINT_RAW("Current path: \"%s\"\r\n", cwd);
-	
+	// PRINT_INF(	"List files:" );
+	// ls( 1, "SD:" );
+
 	if( UpgradeFromSD() == true ){
-		PRINT_RAW("Launching new app.\r\n");
-		// De-initialize bootloader hardware & peripherals
-		SD_DeInit();
-		GPIO_DeInit();
-		// Launch application 
-		Bootloader_JumpToApp1();
+		renew_freefile = true;
+		LaunchApp1();
 	}
 	
-	static bool app1_available = false;
-	static bool app2_available = false;
-
 	if( IsApp1Jumpable() == true ){
-		app1_available = true;
+		LaunchApp1();
 	}
-	
-/*
-	PRINT_RAW("Checking for App 2.............");
-    // Check if there is application in user flash area
-    if(Bootloader_CheckForApp2() == BL_OK){
-#if(USE_CHECKSUM)
-		// Verify application checksum 
-		if(Bootloader_IsApp2ChecksumValid() != BL_OK){
-			PRINT_RAW("BAD");
-		}else{
-			PRINT_RAW("PASS");
-			app2_available = true;
-		}
-#endif
-	}else{
-		PRINT_RAW("NOTFOUND");
-	}
-	PRINT_RAW("\r\n");
-*/
-/*
-	// Check if backup app are the same.
-	bool isApp2TheSameAsApp1 = false;
-	if( app1_available && app2_available ){
-		PRINT_RAW("Comparing App1 and App2......");
-		if( memcmp( APP1_ADDRESS, APP2_ADDRESS, APP2_SIZE ) == 0 ){
-			isApp2TheSameAsApp1 = true;
-			PRINT_RAW("Same\r\n");
-			PRINT_RAW("Launching App 1.\r\n");
-			// De-initialize bootloader hardware & peripherals
-			SD_DeInit();
-			GPIO_DeInit();
-			// Launch application 
-			Bootloader_JumpToApp1();
-		}else{
-			PRINT_INF("Different");
-			Copy_App2_To_App1();
-			PRINT_INF("Launching App 1.");
-			// De-initialize bootloader hardware & peripherals
-			SD_DeInit();
-			GPIO_DeInit();
-			// Launch application 
-			Bootloader_JumpToApp1();
-		}
-	}
-*/
-/*
-	// Recover from backup app
-	while( !app1_available && app2_available ){
-		
-		Copy_App2_To_App1();
-		
-		if(Bootloader_CheckForApp1() == BL_OK){
-	#if(USE_CHECKSUM)
-			// Verify application checksum 
-			if(Bootloader_IsApp1ChecksumValid() == BL_OK){
-				app1_available = true;
-				PRINT_RAW("Launching App 1.\r\n");
-				SD_DeInit();
-				GPIO_DeInit();
-				// Launch application 
-				Bootloader_JumpToApp1();
-			}
-	#endif
-		}else{
-			PRINT_RAW("Failed to recover, retry.\r\n");
-		}
-		HAL_Delay(2000);
-	}
-*/
 
-	// Launch app 1
-	if( app1_available && !app2_available ){
-		PRINT_RAW("Launching App 1.\r\n");
-		SD_DeInit();
-		GPIO_DeInit();
-		// Launch application 
-		Bootloader_JumpToApp1();
+	if( IsBackupFileExists() == true ){
+		FRESULT res;
+		PRINT_RAW("Recover backup file......", UPGRADE_FILENAME);
+		res = f_rename( BACKUP_FILENAME, UPGRADE_FILENAME );
+		if( res == FR_OK ){
+			PRINT_RAW("DONE\r\n");
+			if( UpgradeFromSD() == true ){
+				renew_freefile = true;
+				LaunchApp1();
+			}
+		}else{
+			PRINT_RAW("FAILED\r\n");
+		}
 	}
-	
+
     // No application found
-    PRINT_INF("No application in flash.");
+    PRINT_INF("No application available.");
     while(1){
         setAllPixelColor( 20,20,20 );
         HAL_Delay(150);
