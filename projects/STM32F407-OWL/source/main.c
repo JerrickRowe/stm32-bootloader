@@ -18,6 +18,7 @@
 #include "stm32f4xx_ll_rcc.h"
 #include "main.h"
 #include "bootloader.h"
+#include "tea.h"
 #include "ff.h"
 #include "led.h"
 #include "bsp_WS2812x.h"
@@ -29,6 +30,9 @@
 #include "git.h"
 
 #include "testcases.h"
+
+#define DECRYPTION_ENABLED	0
+
 
 #define DEBUG 1
 #if DEBUG
@@ -277,7 +281,9 @@ bool VerifyUpgradeFile( FIL *fp ){
 			goto ERROR;
 		}
 		// Decryption 
-
+	#if DECRYPTION_ENABLED
+		btea_decrpyt(buff,TEA_key);
+	#endif
 		// Verification
 		if( scan == 0 ){ // First unit
 			if( ((*(uint32_t*)buff - RAM_BASE) > RAM_SIZE) ){

@@ -393,6 +393,11 @@
               <FileType>1</FileType>
               <FilePath>.\projects\STM32F407-OWL\source\main.c</FilePath>
             </File>
+            <File>
+              <FileName>tea.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\projects\STM32F407-OWL\source\tea.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
