@@ -8,6 +8,7 @@
 #define CONF_FILENAME "config.txt"
 
 #define UPGRADE_FILENAME	"SD:/upgrade.bin"
+#define BACKUP_FILENAME		"SD:/backup.bin"
 /* For development/debugging: stdout/stderr via SWO trace */
 #define USE_SWO_TRACE 0
 /******************************************************************************/

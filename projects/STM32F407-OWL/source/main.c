@@ -39,7 +39,7 @@
 #include <stdio.h>
 #define PRINT_RAW(fmt,...)	printf( fmt,##__VA_ARGS__ )
 #define PRINT_INF(fmt,...)	printf( fmt"\r\n",##__VA_ARGS__ )
-#define PRINT_ERR(fmt,...)	printf( "Error: "fmt"\r\n",##__VA_ARGS__ )
+#define PRINT_ERR(fmt,...)	printf( fmt"\r\n",##__VA_ARGS__ )
 #else
 #define PRINT_RAW(fmt,...)	
 #define PRINT_INF(fmt,...)	
@@ -60,6 +60,7 @@ static uint8_t BTNcounter = 0;
 char  SDPath[4] = "SD:"; /* SD logical drive path */
 FATFS SDFatFs;   /* File system object for SD logical drive */
 FIL   SDFile;    /* File object for SD */
+static FIL upgrade_file;
 
 /* Function prototypes -------------------------------------------------------*/
 void    Enter_Bootloader(void);
@@ -249,18 +250,62 @@ void Copy_App2_To_App1( void ){
 }
 
 
-bool VerifyUpgradeFile( FIL *fp ){
-	if( !fp ){
-		return false;
-	}
-	if( f_size( fp ) < APP1_SIZE+4 ){
-		PRINT_ERR( "", "Incorrect file size" );
-		return false;
-	}
-
+bool Copy_File_To_App1( FIL* fp ){
+	FRESULT res;
 	UINT br = 0;
 	uint8_t buff[512];
+	PRINT_INF("Copy file to App1:");
+	PRINT_RAW("  Copy.");
+	f_rewind(fp);
+	uint32_t scan = 0;
+	uint32_t boundary = (APP1_SIZE+4)/512;
+	
+
+
+	Bootloader_FlashBegin();
+	for( scan=0; scan<boundary; scan++ ){
+		res = f_read( fp, buff, 512, &br );
+		if(res!=FR_OK || br!=512){
+			PRINT_ERR( "  f_read error [0x%02X] byte read=%d", res, br );
+			Bootloader_FlashEnd();
+			return false;
+		}
+		// Decryption 
+	#if DECRYPTION_ENABLED
+		btea_decrpyt(buff,TEA_key);
+	#endif
+		// Copy
+		uint32_t cnt = 0;
+		for( cnt=0; cnt<512/4; cnt++ ){
+			uint32_t data = ((uint32_t*)buff)[cnt];
+			uint8_t  status;
+			status = Bootloader_FlashNextWord(data);
+			if( status != BL_OK ){
+				PRINT_RAW("Failed\r\n");
+				Bootloader_FlashEnd();
+				return false;
+			}
+		}
+		if( scan%64 == 0 ){
+			PRINT_RAW( "." );
+		}
+	}
+	Bootloader_FlashEnd();
+	PRINT_RAW("Done\r\n");
+	return true;
+}
+
+
+bool VerifyUpgradeFile( FIL* fp ){
 	FRESULT res;
+	UINT br = 0;
+	uint8_t buff[512];
+	PRINT_INF("Verifying upgrade file:");
+
+	if( f_size( fp ) != APP1_SIZE+4 ){
+		PRINT_ERR( "  Incorrect file size" );
+		goto ERROR;
+	}
 
     CRC_HandleTypeDef CrcHandle;
     volatile uint32_t calculatedCrc = 0;
@@ -268,16 +313,18 @@ bool VerifyUpgradeFile( FIL *fp ){
     CrcHandle.Instance                     = CRC;
     CrcHandle.State                        = HAL_CRC_STATE_RESET;
     if(HAL_CRC_Init(&CrcHandle) != HAL_OK){
-		PRINT_ERR( "", "CRC init error" );
+		PRINT_ERR( "  CRC init error" );
 		goto ERROR;
     }
+
+	PRINT_RAW( "  CRC.." );
 	f_rewind(fp);
 	uint32_t scan = 0;
 	uint32_t boundary = (APP1_SIZE+4)/512;
 	for( scan=0; scan<boundary; scan++ ){
 		res = f_read( fp, buff, 512, &br );
 		if(res!=FR_OK || br!=512){
-			PRINT_ERR( "", "f_read #1 error [0x%02X] byte read=%d", res, br );
+			PRINT_ERR( "  f_read error [0x%02X] byte read=%d", res, br );
 			goto ERROR;
 		}
 		// Decryption 
@@ -287,7 +334,7 @@ bool VerifyUpgradeFile( FIL *fp ){
 		// Verification
 		if( scan == 0 ){ // First unit
 			if( ((*(uint32_t*)buff - RAM_BASE) > RAM_SIZE) ){
-				PRINT_ERR( "Bad MSP[0x%08X]", *(uint32_t*)buff );
+				PRINT_ERR( "  Bad MSP[0x%08X]", *(uint32_t*)buff );
 				goto ERROR;
 			}
 			calculatedCrc = HAL_CRC_Accumulate(&CrcHandle, (uint32_t*)buff, 512/4);
@@ -296,79 +343,106 @@ bool VerifyUpgradeFile( FIL *fp ){
 		}else{
 			calculatedCrc = HAL_CRC_Accumulate(&CrcHandle, (uint32_t*)buff, 512/4);
 		}
+		if( scan%64 == 0 ){
+			PRINT_RAW( "." );
+		}
 	}
 
-    if( *(uint32_t*)&(buff[512-4]) == calculatedCrc ){
-        return true;
+    if( *(uint32_t*)&(buff[512-4]) != calculatedCrc ){
+		PRINT_ERR( "  CRC failed [0x%08X]", calculatedCrc );
+		goto ERROR;
     }
-	PRINT_ERR( "CRC failed [0x%08X]", calculatedCrc );
+	PRINT_RAW( "Pass\r\n" );
+
+	PRINT_INF( "  %s is verified", UPGRADE_FILENAME );
+    return true;
 ERROR:
+	PRINT_INF( "  %s cannot be used", UPGRADE_FILENAME );
     __HAL_RCC_CRC_FORCE_RESET();
     __HAL_RCC_CRC_RELEASE_RESET();
 	return false;
 }
 
 
-static FIL upgrade_file;
-bool UpdateApp2( void ){
+bool IsUpgradeFileExists( void ){
 	FRESULT res;
-	FILINFO file_info;
 	FILINFO fno;
-	
-	PRINT_INF(	"List files:" );
-	ls( 1, "SD:" );
-	
-	// PRINT_RAW("Create \"%s\"......", UPGRADE_FILENAME);
-	// res = f_open(&upgrade_file, UPGRADE_FILENAME, FA_READ | FA_WRITE | FA_CREATE_ALWAYS);
-    // if(res != FR_OK){
-	// 	PRINT_INF("FAILED");
-	// }else{
-		
-	// 	PRINT_INF("DONE");
-	// 	f_close(&upgrade_file);
-	// }
-	
 	PRINT_RAW("Finding \"%s\"......", UPGRADE_FILENAME);
-	res = f_stat(UPGRADE_FILENAME, &file_info);
+	res = f_stat(UPGRADE_FILENAME, &fno);
     if(res != FR_OK){
 		PRINT_INF("NOTFOUND");
         return false;
 	}
 	PRINT_INF("FOUND");
-	PRINT_INF(	"File info: %s %dbytes"
-	,	file_info.fname
-	,	file_info.fsize
+	PRINT_INF("  %s %dbytes"
+	,	fno.fname
+	,	fno.fsize
 	);
+	return true;
+}
+
+
+bool IsApp1Jumpable( void ){
+	PRINT_RAW("Checking for App 1.............");
+    // Check if there is application in user flash area
+    if(Bootloader_CheckForApp1() == BL_OK){
+#if(USE_CHECKSUM)
+		// Verify application checksum 
+		if(Bootloader_IsApp1ChecksumValid() != BL_OK){
+			PRINT_RAW("BAD\r\n");
+			return false;
+		}else{
+			PRINT_RAW("PASS\r\n");
+			return true;
+		}
+#endif
+	}else{
+		PRINT_RAW("NOTFOUND\r\n");
+		return false;
+	}
+}
+
+
+bool UpgradeFromSD( void ){
+	FRESULT res;
+	FILINFO file_info;
+	FILINFO fno;
 	
+	// PRINT_INF(	"List files:" );
+	// ls( 1, "SD:" );
+	if( IsUpgradeFileExists() == false ){
+		return false;
+	}
+
 	PRINT_RAW("Opening \"%s\"......", UPGRADE_FILENAME);
 	res = f_open(&upgrade_file, UPGRADE_FILENAME, FA_READ);
 	if( res != FR_OK ){
-		PRINT_INF("FAILED");
+		PRINT_RAW("FAILED\r\n");
 		return false;
 	}
-	PRINT_INF("DONE");
-	
-	PRINT_RAW("Verifying upgrade file......");
-	if( VerifyUpgradeFile(&upgrade_file) == false ){
-		PRINT_INF("FAILED");
-		f_close(&upgrade_file);
-		// PRINT_RAW("Delete %s........", UPGRADE_FILENAME);
-		// f_unlink(UPGRADE_FILENAME);
-		// res = f_stat(UPGRADE_FILENAME, &file_info);
-		// if(res != FR_OK){
-		// 	PRINT_INF("DONE");
-		// }else{
-		// 	PRINT_INF("FAILED");
-		// }
+	PRINT_RAW("DONE\r\n");
+
+	if( VerifyUpgradeFile( &upgrade_file ) == false ){
 		return false;
 	}
-	PRINT_INF("PASS");
-	
-	return false;
-	
-	
-	Copy_App2_To_App1();
-	f_close(&upgrade_file);
+	if( Copy_File_To_App1( &upgrade_file ) == false ){
+		return false;
+	}
+
+	f_close( &upgrade_file );
+
+	if( IsApp1Jumpable() == false ){
+		return false;
+	}
+
+	PRINT_RAW("Backing up......", UPGRADE_FILENAME);
+	res = f_rename( UPGRADE_FILENAME, BACKUP_FILENAME );
+	if( res != FR_OK ){
+		PRINT_RAW("FAILED\r\n");
+	}
+	PRINT_RAW("DONE\r\n");
+	PRINT_RAW("Backup filename: %s\r\n", BACKUP_FILENAME);
+
 	return true;
 }
 
@@ -389,11 +463,11 @@ int main(void)
 	
 	MountFilesystem();
 
-	char cwd[50];
-	f_getcwd(cwd,50);
-	PRINT_RAW("Current path: \"%s\"\r\n", cwd);
+	// char cwd[50];
+	// f_getcwd(cwd,50);
+	// PRINT_RAW("Current path: \"%s\"\r\n", cwd);
 	
-	if( UpdateApp2() == true ){
+	if( UpgradeFromSD() == true ){
 		PRINT_RAW("Launching new app.\r\n");
 		// De-initialize bootloader hardware & peripherals
 		SD_DeInit();
@@ -405,24 +479,12 @@ int main(void)
 	static bool app1_available = false;
 	static bool app2_available = false;
 
-	PRINT_RAW("Checking for App 1......");
-    // Check if there is application in user flash area
-    if(Bootloader_CheckForApp1() == BL_OK){
-#if(USE_CHECKSUM)
-		// Verify application checksum 
-		if(Bootloader_IsApp1ChecksumValid() != BL_OK){
-			PRINT_RAW("BAD");
-		}else{
-			PRINT_RAW("PASS");
-			app1_available = true;
-		}
-#endif
-	}else{
-		PRINT_RAW("NOTFOUND");
+	if( IsApp1Jumpable() == true ){
+		app1_available = true;
 	}
-	PRINT_RAW("\r\n");
+	
 /*
-	PRINT_RAW("Checking for App 2......");
+	PRINT_RAW("Checking for App 2.............");
     // Check if there is application in user flash area
     if(Bootloader_CheckForApp2() == BL_OK){
 #if(USE_CHECKSUM)

@@ -125,7 +125,7 @@ uint8_t Bootloader_FlashBegin(void)
 	EraseInitStruct.TypeErase = FLASH_TYPEERASE_SECTORS;
 	EraseInitStruct.Banks = FLASH_BANK_1;
 	EraseInitStruct.Sector = FLASH_SECTOR_5;
-	EraseInitStruct.NbSectors = 3;
+	EraseInitStruct.NbSectors = 6;
 	EraseInitStruct.VoltageRange = FLASH_VOLTAGE_RANGE_3;
 	uint32_t SectorError;
 	HAL_FLASHEx_Erase( &EraseInitStruct, &SectorError );
