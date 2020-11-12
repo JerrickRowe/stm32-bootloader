@@ -22,6 +22,7 @@
 #include "ff.h"
 #include "led.h"
 #include "bsp_WS2812x.h"
+#include "Indicator.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
@@ -193,8 +194,7 @@ int ls( int argc, char** argv ){
 
 int testcase_4 ( void );
 
-void MountFilesystem( void ){
-	
+bool MountFilesystem( void ){
 	// testcase_4();
 	
     PRINT_RAW("Mount SD card and FatFS........");
@@ -206,18 +206,16 @@ void MountFilesystem( void ){
     uint32_t cntr;
     uint32_t addr;
     char     msg[40] = {0x00};
-    
 
     /* Mount SD card */
     res = f_mount(&SDFatFs, (TCHAR const*)SDPath, 1);
-    if(res != FR_OK)
-    {
+    if(res != FR_OK){
         /* f_mount failed */
         PRINT_INF("MNT_FAILED [0x%02X]",res);
-        return;
+        return false;
     }
     PRINT_INF("DONE");
-
+	return true;
 }
 
 
@@ -506,6 +504,39 @@ void LaunchApp1( void ){
 }
 
 
+static bool USB_OTG( void ){
+	static enum{
+		STARTUP = 0,
+		CHECK_USB_VOLTAGE,
+		RUNNING,
+	}sta = STARTUP;
+	switch( sta ){
+		case STARTUP:{
+			PRINT_INF( "Connecting USB-OTG" );
+			sta = CHECK_USB_VOLTAGE;
+		}
+		case CHECK_USB_VOLTAGE:{
+			if( 0 ){
+				return true;
+			}
+			break;
+		}
+		case RUNNING:{
+			if( 1 ){
+				return true;
+			}
+			break;
+		}
+		default:{
+			break;
+		}
+	}
+	PRINT_INF( "USB-OTG released" );
+	sta = STARTUP;
+	return false;
+}
+
+
 /* Main ----------------------------------------------------------------------*/
 int main(void)
 {
@@ -518,36 +549,47 @@ int main(void)
     PRINT_RAW("%s\r\n",get_version_string());
 	led_allon();
 	
-	MountFilesystem();
+	if( MountFilesystem() == true ){
+		// PRINT_INF(	"List files:" );
+		// ls( 1, "SD:" );
 
-	// PRINT_INF(	"List files:" );
-	// ls( 1, "SD:" );
+		// Run USB-OTG service
+		while( USB_OTG() );
 
-	if( UpgradeFromSD() == true ){
-		renew_freefile = true;
-		LaunchApp1();
-	}
-	
-	if( IsApp1Jumpable() == true ){
-		LaunchApp1();
-	}
+		// Try to upgrade from SD card
+		if( UpgradeFromSD() == true ){
+			// renew_freefile = true;
+			LaunchApp1();
+		}
 
-	if( IsBackupFileExists() == true ){
-		FRESULT res;
-		PRINT_RAW("Recover backup file......", UPGRADE_FILENAME);
-		res = f_rename( BACKUP_FILENAME, UPGRADE_FILENAME );
-		if( res == FR_OK ){
-			PRINT_RAW("DONE\r\n");
-			if( UpgradeFromSD() == true ){
-				renew_freefile = true;
-				LaunchApp1();
+		// No need to upgrade or upgrade failed.
+		if( IsApp1Jumpable() == true ){
+			LaunchApp1();
+		}
+
+		// App is broken, try to recover from backup file
+		if( IsBackupFileExists() == true ){
+			FRESULT res;
+			PRINT_RAW("Recover backup file......", UPGRADE_FILENAME);
+			res = f_rename( BACKUP_FILENAME, UPGRADE_FILENAME );
+			if( res == FR_OK ){
+				PRINT_RAW("DONE\r\n");
+				if( UpgradeFromSD() == true ){
+					// renew_freefile = true;
+					LaunchApp1();
+				}
+			}else{
+				PRINT_RAW("FAILED\r\n");
 			}
-		}else{
-			PRINT_RAW("FAILED\r\n");
+		}
+	}else{
+		// Try to run app without SD card.
+		if( IsApp1Jumpable() == true ){
+			LaunchApp1();
 		}
 	}
-
-    // No application found
+	
+	// Fatal: no app, no backup file available, upgrade is needed.
     PRINT_INF("No application available.");
     while(1){
         setAllPixelColor( 20,20,20 );
