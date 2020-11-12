@@ -31,7 +31,7 @@
 
 #include "testcases.h"
 
-#define DECRYPTION_ENABLED	0
+#define DECRYPTION_ENABLED	1
 
 
 #define DEBUG 1
