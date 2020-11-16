@@ -25,6 +25,7 @@
 #include "Indicator.h"
 #include <assert.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
 
@@ -448,7 +449,7 @@ bool UpgradeFromSD( void ){
 		return false;
 	}
 
-	PRINT_RAW("Backing up......", UPGRADE_FILENAME);
+	PRINT_RAW("Backing up......");
 	res = f_unlink( BACKUP_FILENAME );
 	res = f_rename( UPGRADE_FILENAME, BACKUP_FILENAME );
 	if( res != FR_OK ){
@@ -570,7 +571,7 @@ int main(void)
 		// App is broken, try to recover from backup file
 		if( IsBackupFileExists() == true ){
 			FRESULT res;
-			PRINT_RAW("Recover backup file......", UPGRADE_FILENAME);
+			PRINT_RAW("Recover backup file......");
 			res = f_rename( BACKUP_FILENAME, UPGRADE_FILENAME );
 			if( res == FR_OK ){
 				PRINT_RAW("DONE\r\n");

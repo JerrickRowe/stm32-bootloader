@@ -294,9 +294,9 @@ typedef struct
 #define SDMMC_STD_CAPACITY                 0x00000000U
 #define SDMMC_CHECK_PATTERN                0x000001AAU
 
-#define SDMMC_MAX_VOLT_TRIAL               0x0000FFFFU
+#define SDMMC_MAX_VOLT_TRIAL               0x000000FFU
     
-#define SDMMC_MAX_TRIAL               0x0000FFFFU
+#define SDMMC_MAX_TRIAL               0x000000FFU
     
 #define SDMMC_ALLZERO                      0x00000000U
 
@@ -320,7 +320,7 @@ typedef struct
   */
 #define SDIO_CCCC_ERASE                   0x00000020U
 
-#define SDIO_CMDTIMEOUT                   5000U        /* Command send and response timeout */
+#define SDIO_CMDTIMEOUT                   2000U        /* Command send and response timeout */
 #define SDIO_MAXERASETIMEOUT              63000U       /* Max erase Timeout 63 s            */
 
 

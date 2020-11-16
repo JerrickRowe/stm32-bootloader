@@ -97,35 +97,42 @@ void USB_OTG_BSP_Init(USB_OTG_CORE_HANDLE * pdev)
   GPIO_InitTypeDef GPIO_InitStructure;
 #ifdef USE_USB_OTG_FS
 
-//  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
+#ifndef USE_HAL_DRIVER
+  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
 
-//  /* Configure SOF ID DM DP Pins */
-//  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_11 | GPIO_Pin_12;
+  /* Configure SOF ID DM DP Pins */
+  GPIO_InitStructure.Pin = GPIO_Pin_11 | GPIO_Pin_12;
 
-//  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_100MHz;
-//  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
-//  GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
-//  GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
-//  GPIO_Init(GPIOA, &GPIO_InitStructure);
+  GPIO_InitStructure.Speed = GPIO_Speed_100MHz;
+  GPIO_InitStructure.Mode = GPIO_Mode_AF;
+  GPIO_InitStructure.Alternate = GPIO_AF_OTG1_FS;
+  GPIO_InitStructure.OType = GPIO_OType_PP;
+  GPIO_InitStructure.PuPd = GPIO_PuPd_NOPULL;
+  GPIO_Init(GPIOA, &GPIO_InitStructure);
 
-////  GPIO_PinAFConfig(GPIOA, GPIO_PinSource8, GPIO_AF_OTG1_FS);
-//  GPIO_PinAFConfig(GPIOA, GPIO_PinSource11, GPIO_AF_OTG1_FS);
-//  GPIO_PinAFConfig(GPIOA, GPIO_PinSource12, GPIO_AF_OTG1_FS);
+//  GPIO_PinAFConfig(GPIOA, GPIO_PinSource8, GPIO_AF_OTG1_FS);
+  GPIO_PinAFConfig(GPIOA, GPIO_PinSource11, GPIO_AF_OTG1_FS);
+  GPIO_PinAFConfig(GPIOA, GPIO_PinSource12, GPIO_AF_OTG1_FS);
 
-//  /* Configure VBUS Pin */
-
-
-//  /* Configure ID pin */
-//  /*GPIO_InitStructure.GPIO_Pin = GPIO_Pin_10;
-//  GPIO_InitStructure.GPIO_OType = GPIO_OType_OD;
-//  GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;
-//  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_100MHz;
-//  GPIO_Init(GPIOA, &GPIO_InitStructure);
-//  GPIO_PinAFConfig(GPIOA, GPIO_PinSource10, GPIO_AF_OTG1_FS);*/
+  /* Configure VBUS Pin */
 
 
-//  RCC_APB2PeriphClockCmd(RCC_APB2Periph_SYSCFG, ENABLE);
-//  RCC_AHB2PeriphClockCmd(RCC_AHB2Periph_OTG_FS, ENABLE);
+  /* Configure ID pin */
+  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_10;
+  GPIO_InitStructure.GPIO_OType = GPIO_OType_OD;
+  GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;
+  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_100MHz;
+  GPIO_Init(GPIOA, &GPIO_InitStructure);
+  GPIO_PinAFConfig(GPIOA, GPIO_PinSource10, GPIO_AF_OTG1_FS);
+
+
+  RCC_APB2PeriphClockCmd(RCC_APB2Periph_SYSCFG, ENABLE);
+  RCC_AHB2PeriphClockCmd(RCC_AHB2Periph_OTG_FS, ENABLE);
+#else					
+  __HAL_RCC_GPIOA_CLK_ENABLE();		
+  
+#endif							/* USE_HAL_DRIVER */
+  
 #else                           /* USE_USB_OTG_HS */
 
 #ifdef USE_ULPI_PHY             /* ULPI */

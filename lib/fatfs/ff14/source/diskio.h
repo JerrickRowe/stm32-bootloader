@@ -74,7 +74,8 @@ DRESULT disk_ioctl (BYTE pdrv, BYTE cmd, void* buff);
 
 #define DEV_RAM		0	/* Example: Map Ramdisk to physical drive 0 */
 #define DEV_MMC		1	/* Example: Map MMC/SD card to physical drive 1 */
-#define DEV_USB		2	/* Example: Map USB MSD to physical drive 2 */
+#define DEV_FLASH	2	/* Example: Map flash to physical drive 2 */
+#define DEV_USB		3	/* Example: Map USB MSD to physical drive 3 */
 
 #ifdef __cplusplus
 }
