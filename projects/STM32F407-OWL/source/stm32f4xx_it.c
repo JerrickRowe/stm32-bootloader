@@ -42,6 +42,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "stm32f4xx_it.h"
+#include "usb_core.h"
 
 #ifdef _RTE_
 #include "RTE_Components.h"             /* Component selection */
@@ -59,8 +60,15 @@
 /* Private define ------------------------------------------------------------*/
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
+extern USB_OTG_CORE_HANDLE USB_OTG_dev;
 
-/* Private function prototypes -----------------------------------------------*/
+/* Private function prototypes ----------------------------------------------- */
+extern uint32_t USBD_OTG_ISR_Handler(USB_OTG_CORE_HANDLE * pdev);
+
+#ifdef USB_OTG_HS_DEDICATED_EP1_ENABLED
+extern uint32_t USBD_OTG_EP1IN_ISR_Handler(USB_OTG_CORE_HANDLE * pdev);
+extern uint32_t USBD_OTG_EP1OUT_ISR_Handler(USB_OTG_CORE_HANDLE * pdev);
+#endif
 /* Private functions ---------------------------------------------------------*/
 
 /******************************************************************************/
@@ -178,15 +186,59 @@ void SysTick_Handler(void)
 /*  file (startup_stm32f4xx.s).                                               */
 /******************************************************************************/
 
+
 /**
-  * @brief  This function handles PPP interrupt request.
+  * @brief  This function handles OTG_HS Handler.
   * @param  None
   * @retval None
   */
-/*void PPP_IRQHandler(void)
+#ifdef USE_USB_OTG_HS
+void OTG_HS_IRQHandler(void)
 {
-}*/
+  USBD_OTG_ISR_Handler(&USB_OTG_dev);
+}
+#endif
 
+#ifdef USE_USB_OTG_FS
+void OTG_FS_IRQHandler(void)
+{
+  USBD_OTG_ISR_Handler(&USB_OTG_dev);
+}
+#endif
+#ifdef USB_OTG_HS_DEDICATED_EP1_ENABLED
+/**
+  * @brief  This function handles EP1_IN Handler.
+  * @param  None
+  * @retval None
+  */
+void OTG_HS_EP1_IN_IRQHandler(void)
+{
+  USBD_OTG_EP1IN_ISR_Handler(&USB_OTG_dev);
+}
+
+/**
+  * @brief  This function handles EP1_OUT Handler.
+  * @param  None
+  * @retval None
+  */
+void OTG_HS_EP1_OUT_IRQHandler(void)
+{
+  USBD_OTG_EP1OUT_ISR_Handler(&USB_OTG_dev);
+}
+#endif
+
+#ifndef USE_STM3210C_EVAL
+/**
+  * @brief  This function handles SDIO global interrupt request.
+  * @param  None
+  * @retval None
+  */
+void SDIO_IRQHandler(void)
+{
+  /* Process All SDIO Interrupt Sources */
+//  SD_ProcessIRQSrc();
+}
+#endif
 
 /**
   * @}

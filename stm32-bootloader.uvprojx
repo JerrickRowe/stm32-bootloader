@@ -276,7 +276,7 @@
               <OCR_RVCT4>
                 <Type>1</Type>
                 <StartAddress>0x8000000</StartAddress>
-                <Size>0xc000</Size>
+                <Size>0x10000</Size>
               </OCR_RVCT4>
               <OCR_RVCT5>
                 <Type>1</Type>
@@ -339,7 +339,7 @@
               <MiscControls></MiscControls>
               <Define>HSE_VALUE=8000000, STM32F407xx, _RTE_, USE_HAL_DRIVER, USE_USB_OTG_FS</Define>
               <Undefine></Undefine>
-              <IncludePath>.\lib\fatfs;.\lib\stm32-bootloader;.\drivers\STM32F4xx_HAL_Driver\Inc;.\projects\STM32F407-OWL\include;.\projects\STM32F407-OWL\source;.\projects\STM32F407-OWL\RTE;.\drivers\STM32F4xx_HAL_Driver\Config;.\projects\STM32F407-OWL\RTE\_Release;.\drivers\CMSIS\Device\ST\STM32F4xx\Include;.\drivers\CMSIS\Include;.\lib\fatfs\ff14\source;.\lib\fatfs\ff14_port;.\projects\STM32F407-OWL;.\lib\STM32_USB_Device_Library\Core\inc;.\lib\STM32_USB_Device_Library\Class\msc\inc;.\lib\STM32_USB_OTG_Driver\inc;.\projects\STM32F407-OWL\source\usb_user</IncludePath>
+              <IncludePath>.\lib\fatfs;.\lib\stm32-bootloader;.\drivers\STM32F4xx_HAL_Driver\Inc;.\projects\STM32F407-OWL\include;.\projects\STM32F407-OWL\source;.\projects\STM32F407-OWL\RTE;.\drivers\STM32F4xx_HAL_Driver\Config;.\projects\STM32F407-OWL\RTE\_Release;.\drivers\CMSIS\Device\ST\STM32F4xx\Include;.\drivers\CMSIS\Include;.\lib\fatfs\ff14\source;.\lib\fatfs\ff14_port;.\projects\STM32F407-OWL;.\lib\STM32_USB_Device_Library\Core\inc;.\lib\STM32_USB_Device_Library\Class\msc\inc;.\lib\STM32_USB_OTG_Driver\inc;.\projects\STM32F407-OWL\source\usb_user;.\lib\Debug</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -443,26 +443,6 @@
         <Group>
           <GroupName>fs</GroupName>
           <Files>
-            <File>
-              <FileName>00history.txt</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\lib\fatfs\ff14\source\00history.txt</FilePath>
-            </File>
-            <File>
-              <FileName>00readme.txt</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\lib\fatfs\ff14\source\00readme.txt</FilePath>
-            </File>
-            <File>
-              <FileName>diskio.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\lib\fatfs\ff14\source\diskio.c</FilePath>
-            </File>
-            <File>
-              <FileName>diskio.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\lib\fatfs\ff14\source\diskio.h</FilePath>
-            </File>
             <File>
               <FileName>ff.c</FileName>
               <FileType>1</FileType>
@@ -933,6 +913,11 @@
         <Group>
           <GroupName>fs_port</GroupName>
           <Files>
+            <File>
+              <FileName>diskio.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\lib\fatfs\ff14_port\diskio.c</FilePath>
+            </File>
             <File>
               <FileName>mmc_port.c</FileName>
               <FileType>1</FileType>

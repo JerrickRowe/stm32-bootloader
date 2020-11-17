@@ -163,8 +163,8 @@ int8_t STORAGE_GetCapacity(uint8_t lun, uint32_t * block_num,
 //    return (-1);
 //  }
 
-//  *block_size = 512;
-//  *block_num = SDCardInfo.CardCapacity / 512;
+  *block_size = 512;
+  *block_num = 0x1000000;
 
   return (0);
 

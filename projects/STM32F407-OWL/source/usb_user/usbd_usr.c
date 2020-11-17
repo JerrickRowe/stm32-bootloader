@@ -54,6 +54,19 @@
 /** @defgroup USBD_USR_Private_Macros
   * @{
   */
+  
+#define DEBUG 1
+#if DEBUG
+#include <stdio.h>
+#define PRINT_RAW(fmt,...)	printf( fmt,##__VA_ARGS__ )
+#define PRINT_INF(fmt,...)	printf( fmt"\r\n",##__VA_ARGS__ )
+#define PRINT_ERR(fmt,...)	printf( fmt"\r\n",##__VA_ARGS__ )
+#else
+#define PRINT_RAW(fmt,...)	
+#define PRINT_INF(fmt,...)	
+#define PRINT_ERR(fmt,...)	
+#endif
+
 /**
   * @}
   */
@@ -111,7 +124,7 @@ USBD_Usr_cb_TypeDef USR_cb = {
 */
 void USBD_USR_Init(void)
 {
-
+    PRINT_INF("USBD user init");
 }
 
 /**
@@ -122,35 +135,35 @@ void USBD_USR_Init(void)
 void USBD_USR_DeviceReset(uint8_t speed){
   switch (speed){
   case USB_OTG_SPEED_HIGH:
-    printf("USB Device Library V1.2.1  [HS]");
+    PRINT_INF("USB Device Library V1.2.1 [HS]");
     break;
 
   case USB_OTG_SPEED_FULL:
-    printf("USB Device Library V1.2.1  [FS]");
+    PRINT_INF("USB Device Library V1.2.1 [FS]");
     break;
   default:
-    printf("USB Device Library V1.2.1  [??]");
+    PRINT_INF("USB Device Library V1.2.1 [??]");
 
   }
 }
 
 
 /**
-* @brief  Displays the message on LCD on device config event
+* @brief  Device Configured user callback
 * @param  None
 * @retval Status
 */
 void USBD_USR_DeviceConfigured(void){
-
+    PRINT_INF("USB device configured");
 }
 
 /**
-* @brief  Displays the message on LCD on device suspend event 
+* @brief  Device Suspended user callback
 * @param  None
 * @retval None
 */
 void USBD_USR_DeviceSuspended(void){
-
+    PRINT_INF("USB device suspended");
 }
 
 
@@ -160,7 +173,7 @@ void USBD_USR_DeviceSuspended(void){
 * @retval None
 */
 void USBD_USR_DeviceResumed(void){
-
+    PRINT_INF("USB device resumed");
 }
 
 /**
@@ -170,7 +183,7 @@ void USBD_USR_DeviceResumed(void){
 * @retval Status
 */
 void USBD_USR_DeviceConnected(void){
-
+    PRINT_INF("USB device connected");
 }
 
 
@@ -181,7 +194,7 @@ void USBD_USR_DeviceConnected(void){
 * @retval Status
 */
 void USBD_USR_DeviceDisconnected(void){
-
+    PRINT_INF("USB device disconnected");
 }
 
 /**

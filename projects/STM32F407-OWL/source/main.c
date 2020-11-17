@@ -33,6 +33,12 @@
 
 #include "testcases.h"
 
+
+#include "usbd_msc_core.h"
+#include "usbd_usr.h"
+#include "usbd_desc.h"
+
+
 #define DECRYPTION_ENABLED	1
 
 
@@ -505,10 +511,12 @@ void LaunchApp1( void ){
 }
 
 
+__ALIGN_BEGIN USB_OTG_CORE_HANDLE USB_OTG_dev __ALIGN_END;
 static bool USB_OTG( void ){
 	static enum{
 		STARTUP = 0,
 		CHECK_USB_VOLTAGE,
+		INIT_USB,
 		RUNNING,
 	}sta = STARTUP;
 	switch( sta ){
@@ -517,13 +525,27 @@ static bool USB_OTG( void ){
 			sta = CHECK_USB_VOLTAGE;
 		}
 		case CHECK_USB_VOLTAGE:{
-			if( 0 ){
+			if( 1 ){
+				sta = INIT_USB;
 				return true;
 			}
 			break;
 		}
+		case INIT_USB:{
+			USBD_Init(&USB_OTG_dev,
+			#ifdef USE_USB_OTG_HS
+				USB_OTG_HS_CORE_ID,
+			#else
+				USB_OTG_FS_CORE_ID,
+			#endif
+				&USR_desc, &USBD_MSC_cb, &USR_cb
+			);
+			sta = RUNNING;
+			return true;
+		}
 		case RUNNING:{
 			if( 1 ){
+				
 				return true;
 			}
 			break;

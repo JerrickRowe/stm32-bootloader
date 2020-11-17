@@ -130,7 +130,25 @@ void USB_OTG_BSP_Init(USB_OTG_CORE_HANDLE * pdev)
   RCC_AHB2PeriphClockCmd(RCC_AHB2Periph_OTG_FS, ENABLE);
 #else					
   __HAL_RCC_GPIOA_CLK_ENABLE();		
+
+  /* Configure SOF ID DM DP Pins */
+  GPIO_InitStructure.Pin = GPIO_PIN_11 | GPIO_PIN_12;
+  GPIO_InitStructure.Alternate = GPIO_AF10_OTG_FS;
+  GPIO_InitStructure.Mode = GPIO_MODE_AF_OD;
+  GPIO_InitStructure.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+  GPIO_InitStructure.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStructure);
   
+  /* Configure ID pin */
+  GPIO_InitStructure.Pin = GPIO_PIN_10;
+  GPIO_InitStructure.Alternate = GPIO_AF10_OTG_FS;
+  GPIO_InitStructure.Mode = GPIO_MODE_AF_OD;
+  GPIO_InitStructure.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+  GPIO_InitStructure.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStructure);
+
+  __HAL_RCC_SYSCFG_CLK_ENABLE();
+  __HAL_RCC_USB_OTG_FS_CLK_ENABLE();
 #endif							/* USE_HAL_DRIVER */
   
 #else                           /* USE_USB_OTG_HS */
@@ -285,21 +303,10 @@ void USB_OTG_BSP_EnableInterrupt(USB_OTG_CORE_HANDLE * pdev)
 * @param  usec : Value of delay required in micro sec
 * @retval None
 */
-#if defined (USE_STM322xG_EVAL)
-     /* This value is set for SYSCLK = 120 MHZ, User can adjust this value
-      * depending on used SYSCLK frequency */
-#define count_us   40
+#define count_us   55   // For SYSCLK = 168 MHZ
+// #define count_us   40  // For SYSCLK = 120 MHZ
+// #define count_us   12   // For SYSCLK = 72 MHZ
 
-#elif defined(USE_STM324xG_EVAL) || defined(USE_STM324x9I_EVAL)
-    /* This value is set for SYSCLK = 168 MHZ, User can adjust this value
-     * depending on used SYSCLK frequency */
-#define count_us   55
-
-#else                           /* defined (USE_STM3210C_EVAL) */
-    /* This value is set for SYSCLK = 72 MHZ, User can adjust this value
-     * depending on used SYSCLK frequency */
-#define count_us   12
-#endif
 void USB_OTG_BSP_uDelay(const uint32_t usec)
 {
   uint32_t count = count_us * usec;
