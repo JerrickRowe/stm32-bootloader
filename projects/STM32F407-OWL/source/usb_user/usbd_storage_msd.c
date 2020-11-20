@@ -21,6 +21,21 @@
 
 /* Includes ------------------------------------------------------------------ */
 #include "usbd_msc_mem.h"
+#include "bsp_driver_sd.h"
+#include <stdbool.h>
+
+#define DEBUG 1
+#if DEBUG
+#include <stdio.h>
+#define PRINT_RAW(fmt,...)	printf( fmt,##__VA_ARGS__ )
+#define PRINT_INF(fmt,...)	printf( fmt"\r\n",##__VA_ARGS__ )
+#define PRINT_ERR(fmt,...)	printf( fmt"\r\n",##__VA_ARGS__ )
+#else
+#define PRINT_RAW(fmt,...)	
+#define PRINT_INF(fmt,...)	
+#define PRINT_ERR(fmt,...)	
+#endif
+
 
 /** @addtogroup STM32_USB_OTG_DEVICE_LIBRARY
   * @{
@@ -136,16 +151,15 @@ __IO uint32_t count = 0;
   * @param  lun : logical unit number
   * @retval Status
   */
-
+static bool sdcard_is_ready = false;
 int8_t STORAGE_Init(uint8_t lun)
 {
-  if (SD_Init() != 0)
-  {
-    return (-1);
-  }
-
-  return (0);
-
+	int err = (int)BSP_SD_Init();
+	if( err == MSD_OK ){
+		sdcard_is_ready = true;
+		return 0;
+	}
+	return (-1);
 }
 
 /**
@@ -158,16 +172,11 @@ int8_t STORAGE_Init(uint8_t lun)
 int8_t STORAGE_GetCapacity(uint8_t lun, uint32_t * block_num,
                            uint32_t * block_size)
 {
-//  if (SD_GetStatus() != 0)
-//  {
-//    return (-1);
-//  }
-
-  *block_size = 512;
-  *block_num = 0x1000000;
-
-  return (0);
-
+	BSP_SD_CardInfo card_info;
+	BSP_SD_GetCardInfo( &card_info );
+	*block_size = card_info.BlockSize;
+	*block_num = card_info.BlockNbr;
+	return (0);
 }
 
 /**
@@ -176,7 +185,11 @@ int8_t STORAGE_GetCapacity(uint8_t lun, uint32_t * block_num,
   * @retval Status
   */
 int8_t STORAGE_IsReady(uint8_t lun){
-  return (0);
+	if( sdcard_is_ready ){
+		return 0;
+	}else{
+		return -1;
+	}
 }
 
 /**
@@ -186,7 +199,7 @@ int8_t STORAGE_IsReady(uint8_t lun){
   */
 int8_t STORAGE_IsWriteProtected(uint8_t lun)
 {
-  return 0;
+	return 0;
 }
 
 /**
@@ -200,8 +213,14 @@ int8_t STORAGE_IsWriteProtected(uint8_t lun)
 int8_t STORAGE_Read(uint8_t lun,
                     uint8_t * buf, uint32_t blk_addr, uint16_t blk_len)
 {
-
-  return 0;
+	
+	while( BSP_SD_GetCardState() == SD_TRANSFER_BUSY );
+	int result = BSP_SD_ReadBlocks( buf, blk_addr, blk_len, 100 );
+	if( result == MSD_OK ){
+		return 0;
+	}else{
+		return -1;
+	}
 }
 
 /**
@@ -215,7 +234,13 @@ int8_t STORAGE_Read(uint8_t lun,
 int8_t STORAGE_Write(uint8_t lun,
                      uint8_t * buf, uint32_t blk_addr, uint16_t blk_len)
 {
-  return (0);
+	while( BSP_SD_GetCardState() == SD_TRANSFER_BUSY );
+	int result = BSP_SD_WriteBlocks( buf, blk_addr, blk_len, 100 );
+	if( result == MSD_OK ){
+		return 0;
+	}else{
+		return -1;
+	}
 }
 
 /**

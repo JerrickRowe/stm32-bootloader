@@ -475,6 +475,10 @@ static HAL_StatusTypeDef SD_DMAConfigRx(SD_HandleTypeDef* hsd)
     /* Configure DMA Rx parameters */
     hdma_rx.Instance                 = DMA2_Stream3;
 //    hdma_rx.Init.Request             = DMA_REQUEST_7;
+	hdma_rx.Init.Channel			 = DMA_CHANNEL_4;
+	hdma_rx.Init.Mode				 = DMA_NORMAL;
+	hdma_rx.Init.MemBurst			 = DMA_MBURST_SINGLE;
+	hdma_rx.Init.PeriphBurst		 = DMA_PBURST_SINGLE;
     hdma_rx.Init.Direction           = DMA_PERIPH_TO_MEMORY;
     hdma_rx.Init.PeriphInc           = DMA_PINC_DISABLE;
     hdma_rx.Init.MemInc              = DMA_MINC_ENABLE;
@@ -514,6 +518,10 @@ static HAL_StatusTypeDef SD_DMAConfigTx(SD_HandleTypeDef* hsd)
     /* Configure DMA Tx parameters */
     hdma_tx.Instance                 = DMA2_Stream3;
 //    hdma_tx.Init.Request             = DMA_REQUEST_7;
+	hdma_tx.Init.Channel			 = DMA_CHANNEL_4;
+	hdma_tx.Init.Mode				 = DMA_NORMAL;
+	hdma_tx.Init.MemBurst			 = DMA_MBURST_SINGLE;
+	hdma_tx.Init.PeriphBurst		 = DMA_PBURST_SINGLE;
     hdma_tx.Init.Direction           = DMA_MEMORY_TO_PERIPH;
     hdma_tx.Init.PeriphInc           = DMA_PINC_DISABLE;
     hdma_tx.Init.MemInc              = DMA_MINC_ENABLE;
@@ -539,3 +547,25 @@ static HAL_StatusTypeDef SD_DMAConfigTx(SD_HandleTypeDef* hsd)
 
     return status;
 }
+
+
+void DMA2_Stream3_IRQHandler( void ){   
+	if((hsd1.Context == (SD_CONTEXT_DMA | SD_CONTEXT_READ_SINGLE_BLOCK)) ||
+       (hsd1.Context == (SD_CONTEXT_DMA | SD_CONTEXT_READ_MULTIPLE_BLOCK)))
+    {
+        HAL_DMA_IRQHandler(hsd1.hdmarx);
+    }
+    else if((hsd1.Context ==
+             (SD_CONTEXT_DMA | SD_CONTEXT_WRITE_SINGLE_BLOCK)) ||
+            (hsd1.Context ==
+             (SD_CONTEXT_DMA | SD_CONTEXT_WRITE_MULTIPLE_BLOCK)))
+    {
+        HAL_DMA_IRQHandler(hsd1.hdmatx);
+    }
+}
+
+// void DMA2_Stream6_IRQHandler( void ){
+// 	HAL_DMA_IRQHandler( hsd1.hdmatx );
+// }
+
+
