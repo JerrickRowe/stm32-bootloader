@@ -18,6 +18,9 @@
 /* Variables -----------------------------------------------------------------*/
 SD_HandleTypeDef hsd1;
 
+/* Private configuration macros ----------------------------------------------*/
+#define USE_DETECT_PIN	0
+
 /* Private function prototypes -----------------------------------------------*/
 static void              BSP_SD_MspInit(void);
 static void              BSP_SD_MspDeInit(void);
@@ -287,6 +290,7 @@ void BSP_SD_GetCardInfo(BSP_SD_CardInfo* CardInfo)
  */
 uint8_t BSP_SD_IsDetected(void)
 {
+#if USE_DETECT_PIN
     GPIO_InitTypeDef GPIO_InitStruct = {0};
 	static uint8_t isInit = 1;
 	if( isInit ){
@@ -302,6 +306,7 @@ uint8_t BSP_SD_IsDetected(void)
 	if( HAL_GPIO_ReadPin(GPIOA,GPIO_PIN_4) == SET ){
 		return SD_NOT_PRESENT;
 	}
+#endif
     return SD_PRESENT;
 }
 

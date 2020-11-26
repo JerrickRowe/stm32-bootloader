@@ -180,7 +180,13 @@ FRESULT scan_files ( char* path ){       /* Start node to be scanned (***also us
                 if (res != FR_OK) break;
                 path[i] = 0;
             } else {                                       /* It is a file. */
-                PRINT_RAW("%s/%s\r\n", path, fno.fname);
+				PRINT_RAW("%u/%02u/%02u %02u:%02u ""%4u%c ""%s/%s\r\n"
+              	, (fno.fdate>>9)+1980, fno.fdate>>5&15, fno.fdate&31
+                , fno.ftime>>11, fno.ftime>>5&63
+				, fno.fsize>1024?(fno.fsize>1048576?fno.fsize/1048576:fno.fsize/1024):fno.fsize
+				, fno.fsize>1024?(fno.fsize>1048576?'M':'K'):'B'
+				, path, fno.fname
+				);
             }
         }
         f_closedir(&dir);
@@ -573,8 +579,8 @@ int main(void)
 	led_allon();
 	
 	if( MountFilesystem() == true ){
-		// PRINT_INF(	"List files:" );
-		// ls( 1, "SD:" );
+		PRINT_INF(	"List files:" );
+		ls( 1, "SD:" );
 
 		// Run USB-OTG service
 		while( USB_OTG() );
@@ -877,6 +883,20 @@ void GPIO_Startup(void)
 
     __HAL_RCC_GPIOB_CLK_ENABLE();
     __HAL_RCC_GPIOC_CLK_ENABLE();
+    __HAL_RCC_GPIOD_CLK_ENABLE();
+
+#define POWER_EN_Pin	GPIO_PIN_11
+#define POWER_EN_Port	GPIOD
+#define POWER_EN_ON		GPIO_PIN_SET
+#define POWER_EN_OFF	GPIO_PIN_RESET
+
+	// Power enable
+	GPIO_InitStruct.Pin = POWER_EN_Pin;
+	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+	GPIO_InitStruct.Pull = GPIO_NOPULL;
+	HAL_GPIO_Init(POWER_EN_Port, &GPIO_InitStruct);
+	HAL_GPIO_WritePin(POWER_EN_Port,POWER_EN_Pin,POWER_EN_ON);
 
     /* Configure GPIO pin output levels */
     HAL_GPIO_WritePin(LED_G_Port, LED_G_Pin, GPIO_PIN_RESET);
