@@ -39,6 +39,7 @@ extern "C"{
 typedef struct led_param{
 	int index;
 	uint32_t color;
+	uint32_t color_new;
 	led_mode_t mode;
 }led_param_t;
 
@@ -62,6 +63,11 @@ void led_poll( void ){
 			SetPixelColor( pLED->index, 0 );
 		}
 	}
+	for( int i=0; i<__LED_ENUM_BUTT; i++ ){
+		pLED = &led_map[i]; 
+		pLED->color = pLED->color_new;
+	}
+	bsp_WS2812_SyncAllPixel();
 }	// Poll this function to update LED status
 
 void led_set( led_id_t led, led_mode_t mode ){
@@ -120,13 +126,13 @@ void led_toggle( led_id_t led ){
 
 void led_setAllRGB( uint32_t color ){
 	for( int i=0; i<__LED_ENUM_BUTT; i++ ){
-		led_map[i].color = color;
+		led_map[i].color_new = color;
 	}
 }
 
 void led_setRGB( led_id_t led, uint32_t color ){
 	led_param_t *pLED = &led_map[led];
-	pLED->color = color;
+	pLED->color_new = color;
 }
 
 #ifdef __cplusplus

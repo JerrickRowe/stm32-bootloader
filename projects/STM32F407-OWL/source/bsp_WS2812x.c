@@ -1,4 +1,4 @@
-//#include£¢bsp.h£¢
+//#includeï¿½ï¿½bsp.hï¿½ï¿½
 #include "stm32f4xx.h"
 #include "stm32f4xx_hal.h"
 #include "bsp_WS2812x.h"
@@ -66,12 +66,6 @@ void Send_2811_24bits(uint8_t RData,uint8_t GData,uint8_t BData)
 	__enable_irq();
 }
 
-void setAllPixelColor(uint8_t r, uint8_t g, uint8_t b)
-{
-   Send_2811_24bits(r,g,b);
-   Send_2811_24bits(r,g,b);
-   Send_2811_24bits(r,g,b);
-}
 
 //void setPixelColor(uint16_t n, uint8_t r, uint8_t g, uint8_t b)
 //{
@@ -91,24 +85,37 @@ echoDeng_u8Type rBuffer[numLEDs]= {0};
 echoDeng_u8Type gBuffer[numLEDs]= {0};
 echoDeng_u8Type bBuffer[numLEDs]= {0};
 
-void SetPixelColor(uint16_t n, uint32_t c)
-{
-    echoDeng_u8Type i=0;
-    rBuffer[n]=(uint8_t)(c>>16);
-    gBuffer[n]=(uint8_t)(c>>8);
-    bBuffer[n]=(uint8_t)c;
-    for(i=0; i<numLEDs; i++)
-    {
+void bsp_WS2812_SyncAllPixel( void ){    
+    uint8_t i=0;
+	for(i=0; i<numLEDs; i++){
         Send_2811_24bits(rBuffer[i],gBuffer[i],bBuffer[i]);
     }
 }
 
+void SetPixelColor(uint16_t n, uint32_t c)
+{
+    echoDeng_u8Type i=0;
+	n %= numLEDs;
+    rBuffer[n]=(uint8_t)(c>>16);
+    gBuffer[n]=(uint8_t)(c>>8);
+    bBuffer[n]=(uint8_t)c;
+}
+
+void setAllPixelColor(uint8_t r, uint8_t g, uint8_t b)
+{
+    echoDeng_u8Type i=0;
+	for(i=0; i<numLEDs; i++){
+		rBuffer[i] = r;
+		gBuffer[i] = g;
+		bBuffer[i] = b;
+	}
+}
 /*
 *********************************************************************************************************
-*   º¯ Êý Ãû: WS2812VarInit
-*   ¹¦ÄÜËµÃ÷: ³õÊ¼»¯ÈÃËùÓÐµÆÃðµô
-*   ÐÎ    ²Î: ÎÞ
-*   ·µ »Ø Öµ: ÎÞ
+*   ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½: WS2812VarInit
+*   ï¿½ï¿½ï¿½ï¿½Ëµï¿½ï¿½: ï¿½ï¿½Ê¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ðµï¿½ï¿½ï¿½ï¿½
+*   ï¿½ï¿½    ï¿½ï¿½: ï¿½ï¿½
+*   ï¿½ï¿½ ï¿½ï¿½ Öµ: ï¿½ï¿½
 *********************************************************************************************************
 */
 static void WS2812VarInit(void)
@@ -128,10 +135,10 @@ static void WS2812VarInit(void)
 
 /*
 *********************************************************************************************************
-*   º¯ Êý Ãû: bsp_InitWS2812Hard
-*   ¹¦ÄÜËµÃ÷: ³õÊ¼»¯WS2812µÄGPIO¿Ú
-*   ÐÎ    ²Î: ÎÞ
-*   ·µ »Ø Öµ: ÎÞ
+*   ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½: bsp_InitWS2812Hard
+*   ï¿½ï¿½ï¿½ï¿½Ëµï¿½ï¿½: ï¿½ï¿½Ê¼ï¿½ï¿½WS2812ï¿½ï¿½GPIOï¿½ï¿½
+*   ï¿½ï¿½    ï¿½ï¿½: ï¿½ï¿½
+*   ï¿½ï¿½ ï¿½ï¿½ Öµ: ï¿½ï¿½
 *********************************************************************************************************
 */
 
