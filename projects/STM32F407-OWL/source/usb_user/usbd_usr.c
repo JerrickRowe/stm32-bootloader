@@ -55,6 +55,9 @@
   * @{
   */
   
+
+#define GET_TIME_MS()	HAL_GetTick()
+
 #define DEBUG 1
 #if DEBUG
 #include <stdio.h>
@@ -75,6 +78,9 @@
 /** @defgroup USBD_USR_Private_Variables
   * @{
   */
+static int is_connected;
+static uint32_t operation_timestamp = 0;
+
 /* Points to the DEVICE_PROP structure of current device */
 /* The purpose of this register is to speed up the execution */
 
@@ -124,6 +130,7 @@ USBD_Usr_cb_TypeDef USR_cb = {
 */
 void USBD_USR_Init(void)
 {
+	operation_timestamp = GET_TIME_MS();
     PRINT_INF("USBD user init");
 }
 
@@ -133,18 +140,19 @@ void USBD_USR_Init(void)
 * @retval None
 */
 void USBD_USR_DeviceReset(uint8_t speed){
-  switch (speed){
-  case USB_OTG_SPEED_HIGH:
-    PRINT_INF("USB Device Library V1.2.1 [HS]");
-    break;
+	operation_timestamp = GET_TIME_MS();
+	switch (speed){
+	case USB_OTG_SPEED_HIGH:
+		PRINT_INF("USB Device Library V1.2.1 [HS]");
+		break;
 
-  case USB_OTG_SPEED_FULL:
-    PRINT_INF("USB Device Library V1.2.1 [FS]");
-    break;
-  default:
-    PRINT_INF("USB Device Library V1.2.1 [??]");
+	case USB_OTG_SPEED_FULL:
+		PRINT_INF("USB Device Library V1.2.1 [FS]");
+		break;
+	default:
+		PRINT_INF("USB Device Library V1.2.1 [??]");
 
-  }
+	}
 }
 
 
@@ -154,6 +162,8 @@ void USBD_USR_DeviceReset(uint8_t speed){
 * @retval Status
 */
 void USBD_USR_DeviceConfigured(void){
+	is_connected = 1;
+	operation_timestamp = GET_TIME_MS();
     PRINT_INF("USB device configured");
 }
 
@@ -163,6 +173,8 @@ void USBD_USR_DeviceConfigured(void){
 * @retval None
 */
 void USBD_USR_DeviceSuspended(void){
+	is_connected = 0;
+	operation_timestamp = 0;
     PRINT_INF("USB device suspended");
 }
 
@@ -173,6 +185,8 @@ void USBD_USR_DeviceSuspended(void){
 * @retval None
 */
 void USBD_USR_DeviceResumed(void){
+	is_connected = 1;
+	operation_timestamp = GET_TIME_MS();
     PRINT_INF("USB device resumed");
 }
 
@@ -183,6 +197,7 @@ void USBD_USR_DeviceResumed(void){
 * @retval Status
 */
 void USBD_USR_DeviceConnected(void){
+	operation_timestamp = GET_TIME_MS();
     PRINT_INF("USB device connected");
 }
 
@@ -194,12 +209,25 @@ void USBD_USR_DeviceConnected(void){
 * @retval Status
 */
 void USBD_USR_DeviceDisconnected(void){
+	is_connected = 0;
+	operation_timestamp = 0;
     PRINT_INF("USB device disconnected");
 }
 
 /**
   * @}
   */
+
+int USBD_USR_IsReleased( void ){
+	if( is_connected ){
+		return 0;
+	}
+	if( GET_TIME_MS() - operation_timestamp > 10000 ){
+		return 1;
+	}
+	return 0;
+}
+
 
 /**
   * @}

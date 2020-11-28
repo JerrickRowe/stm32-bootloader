@@ -22,7 +22,10 @@
 /* Includes ------------------------------------------------------------------ */
 #include "usbd_msc_mem.h"
 #include "bsp_driver_sd.h"
+#include "led.h"
 #include <stdbool.h>
+
+#define GET_TIME_MS()	HAL_GetTick()
 
 #define DEBUG 1
 #if DEBUG
@@ -76,6 +79,9 @@
 /** @defgroup STORAGE_Private_Variables
   * @{
   */
+
+static uint32_t timestamp_last_read, timestamp_last_write;
+
 /* USB Mass storage Standard Inquiry Data */
 const int8_t STORAGE_Inquirydata[] = {  // 36
 
@@ -213,9 +219,9 @@ int8_t STORAGE_IsWriteProtected(uint8_t lun)
 int8_t STORAGE_Read(uint8_t lun,
                     uint8_t * buf, uint32_t blk_addr, uint16_t blk_len)
 {
-	
+	timestamp_last_read = GET_TIME_MS();
 	while( BSP_SD_GetCardState() == SD_TRANSFER_BUSY );
-	int result = BSP_SD_ReadBlocks( buf, blk_addr, blk_len, 100 );
+	int result = BSP_SD_ReadBlocks( buf, blk_addr, blk_len, 1000 );
 	if( result == MSD_OK ){
 		return 0;
 	}else{
@@ -234,8 +240,9 @@ int8_t STORAGE_Read(uint8_t lun,
 int8_t STORAGE_Write(uint8_t lun,
                      uint8_t * buf, uint32_t blk_addr, uint16_t blk_len)
 {
+	timestamp_last_write = GET_TIME_MS();
 	while( BSP_SD_GetCardState() == SD_TRANSFER_BUSY );
-	int result = BSP_SD_WriteBlocks( buf, blk_addr, blk_len, 100 );
+	int result = BSP_SD_WriteBlocks( buf, blk_addr, blk_len, 1000 );
 	if( result == MSD_OK ){
 		return 0;
 	}else{
@@ -257,6 +264,15 @@ int8_t STORAGE_GetMaxLun(void)
 /**
   * @}
   */
+
+int USBD_USR_IsStorageActive( void ){
+	if( GET_TIME_MS() - timestamp_last_read	 < 200
+	||	GET_TIME_MS() - timestamp_last_write < 200
+	){
+		return 1;
+	}
+	return 0;
+}
 
 
 /**

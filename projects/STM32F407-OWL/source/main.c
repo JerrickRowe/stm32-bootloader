@@ -74,6 +74,9 @@ static FIL upgrade_file;
 bool renew_freefile = false;
 
 /* Function prototypes -------------------------------------------------------*/
+void 	PowerHold( void );
+void 	PowerRelease( void );
+
 void    Enter_Bootloader(void);
 void    SD_DeInit(void);
 void    SD_Eject(void);
@@ -148,7 +151,10 @@ const char* get_version_string( void ){
 static uint32_t tick;
 void HAL_IncTick(void)
 {
-  tick ++;
+	tick ++;
+	if( tick % 50 == 0 ){
+		led_poll();
+	}
 }
 
 /**
@@ -527,11 +533,14 @@ static bool USB_OTG( void ){
 	}sta = STARTUP;
 	switch( sta ){
 		case STARTUP:{
-			PRINT_INF( "Connecting USB-OTG" );
+			PRINT_INF( "USB-OTG Startup" );
+
 			sta = CHECK_USB_VOLTAGE;
 		}
 		case CHECK_USB_VOLTAGE:{
+
 			if( 1 ){
+				led_setAllRGB( RGB(0,0,50) );
 				sta = INIT_USB;
 				return true;
 			}
@@ -550,8 +559,19 @@ static bool USB_OTG( void ){
 			return true;
 		}
 		case RUNNING:{
-			if( 1 ){
-				
+			if( USBD_USR_IsStorageActive() ){
+				static bool toggle = false;
+				if( toggle ){
+					toggle = false;
+					led_setAllRGB( RGB(0,0,100) );
+				}else{
+					toggle = true;
+					led_setAllRGB( RGB(0,0,50) );
+				}
+			}else{
+				led_setAllRGB( RGB(0,0,50) );
+			}
+			if( !USBD_USR_IsReleased() ){
 				return true;
 			}
 			break;
@@ -561,6 +581,11 @@ static bool USB_OTG( void ){
 		}
 	}
 	PRINT_INF( "USB-OTG released" );
+	led_setAllRGB( RGB(0,0,0) );
+	HAL_Delay(10);
+	PowerRelease();
+	HAL_Delay(100);
+	PRINT_INF( "Failed to release power" );
 	sta = STARTUP;
 	return false;
 }
@@ -577,13 +602,21 @@ int main(void)
 	led_init();
     PRINT_RAW("%s\r\n",get_version_string());
 	led_allon();
+	led_setAllRGB( RGB(255,0,0) );
+    HAL_Delay(200);
+	led_setAllRGB( RGB(0,255,0) );
+    HAL_Delay(200);
+	led_setAllRGB( RGB(0,0,255) );
+    HAL_Delay(200);
+	led_setAllRGB( RGB(0,0,0) );
 	
 	if( MountFilesystem() == true ){
 		PRINT_INF(	"List files:" );
 		ls( 1, "SD:" );
 
 		// Run USB-OTG service
-		while( USB_OTG() );
+		while( USB_OTG() ){
+		}
 
 		// Try to upgrade from SD card
 		if( UpgradeFromSD() == true ){
@@ -621,10 +654,10 @@ int main(void)
 	// Fatal: no app, no backup file available, upgrade is needed.
     PRINT_INF("No application available.");
     while(1){
-        setAllPixelColor( 20,20,20 );
-        HAL_Delay(150);
-        setAllPixelColor( 0,0,0 );
-        HAL_Delay(150);
+		led_setAllRGB( RGB(20,20,20) );
+		HAL_Delay(150);
+		led_setAllRGB( RGB(0,0,0) );
+		HAL_Delay(150);
     }
 }
 
@@ -876,6 +909,24 @@ void SD_Eject(void)
     f_mount(NULL, (TCHAR const*)SDPath, 0);
 }
 
+
+
+#define POWER_EN_Pin	GPIO_PIN_11
+#define POWER_EN_Port	GPIOD
+#define POWER_EN_ON		GPIO_PIN_SET
+#define POWER_EN_OFF	GPIO_PIN_RESET
+
+
+void PowerHold( void ){
+	HAL_GPIO_WritePin(POWER_EN_Port,POWER_EN_Pin,POWER_EN_ON);
+}
+
+void PowerRelease( void ){
+	HAL_GPIO_WritePin(POWER_EN_Port,POWER_EN_Pin,POWER_EN_OFF);
+}
+
+
+
 /*** GPIO Configuration ***/
 void GPIO_Startup(void)
 {
@@ -885,11 +936,6 @@ void GPIO_Startup(void)
     __HAL_RCC_GPIOC_CLK_ENABLE();
     __HAL_RCC_GPIOD_CLK_ENABLE();
 
-#define POWER_EN_Pin	GPIO_PIN_11
-#define POWER_EN_Port	GPIOD
-#define POWER_EN_ON		GPIO_PIN_SET
-#define POWER_EN_OFF	GPIO_PIN_RESET
-
 	// Power enable
 	GPIO_InitStruct.Pin = POWER_EN_Pin;
 	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
@@ -897,6 +943,8 @@ void GPIO_Startup(void)
 	GPIO_InitStruct.Pull = GPIO_NOPULL;
 	HAL_GPIO_Init(POWER_EN_Port, &GPIO_InitStruct);
 	HAL_GPIO_WritePin(POWER_EN_Port,POWER_EN_Pin,POWER_EN_ON);
+
+	PowerHold();
 
     /* Configure GPIO pin output levels */
     HAL_GPIO_WritePin(LED_G_Port, LED_G_Pin, GPIO_PIN_RESET);
@@ -931,6 +979,7 @@ void GPIO_Startup(void)
     GPIO_InitStruct.Pull  = GPIO_PULLUP;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
     HAL_GPIO_Init(BTN_Port, &GPIO_InitStruct);
+	
 }
 void GPIO_DeInit(void)
 {
@@ -943,7 +992,6 @@ void GPIO_DeInit(void)
     __HAL_RCC_GPIOB_CLK_DISABLE();
     __HAL_RCC_GPIOC_CLK_DISABLE();
 }
-
 
 /*** Console Configuration ***/
 static USART_HandleTypeDef console_usart_handle;
@@ -1116,9 +1164,9 @@ void print(const char* str)
 _ARMABI_NORETURN void Error_Handler(void)
 {
     while(1){
-        setAllPixelColor( 20,20,20 );
+		led_setAllRGB( RGB(20,20,20) );
         HAL_Delay(150);
-        setAllPixelColor( 0,0,0 );
+		led_setAllRGB( RGB_OFF );
         HAL_Delay(150);
     }
 }
