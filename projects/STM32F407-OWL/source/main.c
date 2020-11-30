@@ -152,7 +152,7 @@ static uint32_t tick;
 void HAL_IncTick(void)
 {
 	tick ++;
-	if( tick % 50 == 0 ){
+	if( tick % 25 == 0 ){
 		led_poll();
 	}
 }
@@ -560,13 +560,17 @@ static bool USB_OTG( void ){
 		}
 		case RUNNING:{
 			if( USBD_USR_IsStorageActive() ){
-				static bool toggle = false;
-				if( toggle ){
-					toggle = false;
-					led_setAllRGB( RGB(0,0,100) );
-				}else{
-					toggle = true;
-					led_setAllRGB( RGB(0,0,50) );
+				static uint32_t toggle_timestamp = 0;
+				if( HAL_GetTick() - toggle_timestamp > 50 ){
+					toggle_timestamp = HAL_GetTick();
+					static bool toggle = false;
+					if( toggle ){
+						toggle = false;
+						led_setAllRGB( RGB(0,0,100) );
+					}else{
+						toggle = true;
+						led_setAllRGB( RGB(0,0,50) );
+					}
 				}
 			}else{
 				led_setAllRGB( RGB(0,0,50) );

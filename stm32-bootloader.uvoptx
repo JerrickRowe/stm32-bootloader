@@ -148,24 +148,7 @@
           <Name>UL2CM3(-S0 -C0 -P0 )  -FN1 -FC1000 -FD20000000 -FF0STM32F4xx_1024 -FL0100000 -FS08000000 -FP0($$Device:STM32F407VGTx$CMSIS\Flash\STM32F4xx_1024.FLM)</Name>
         </SetRegEntry>
       </TargetDriverDllRegistry>
-      <Breakpoint>
-        <Bp>
-          <Number>0</Number>
-          <Type>0</Type>
-          <LineNumber>96</LineNumber>
-          <EnabledFlag>1</EnabledFlag>
-          <Address>134249378</Address>
-          <ByteObject>0</ByteObject>
-          <HtxType>0</HtxType>
-          <ManyObjects>0</ManyObjects>
-          <SizeOfObject>0</SizeOfObject>
-          <BreakByAccess>0</BreakByAccess>
-          <BreakIfRCount>1</BreakIfRCount>
-          <Filename>.\projects\STM32F407-OWL\source\bsp_WS2812x.c</Filename>
-          <ExecCommand></ExecCommand>
-          <Expression>\\stm32_bootloader\projects/STM32F407-OWL/source/bsp_WS2812x.c\96</Expression>
-        </Bp>
-      </Breakpoint>
+      <Breakpoint/>
       <WatchWindow1>
         <Ww>
           <count>0</count>
@@ -271,28 +254,20 @@
       <pMultCmdsp></pMultCmdsp>
       <SystemViewers>
         <Entry>
-          <Name>System Viewer\DMA2</Name>
-          <WinId>35901</WinId>
-        </Entry>
-        <Entry>
-          <Name>System Viewer\FLASH</Name>
-          <WinId>35905</WinId>
-        </Entry>
-        <Entry>
           <Name>System Viewer\GPIOA</Name>
           <WinId>35900</WinId>
         </Entry>
         <Entry>
-          <Name>System Viewer\GPIOC</Name>
-          <WinId>35902</WinId>
+          <Name>System Viewer\OTG_FS_DEVICE</Name>
+          <WinId>35899</WinId>
         </Entry>
         <Entry>
-          <Name>System Viewer\RCC</Name>
-          <WinId>35904</WinId>
+          <Name>System Viewer\OTG_FS_GLOBAL</Name>
+          <WinId>35897</WinId>
         </Entry>
         <Entry>
-          <Name>System Viewer\SDIO</Name>
-          <WinId>35903</WinId>
+          <Name>System Viewer\OTG_FS_PWRCLK</Name>
+          <WinId>35898</WinId>
         </Entry>
       </SystemViewers>
       <DebugDescription>
