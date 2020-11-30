@@ -78,6 +78,7 @@
 /** @defgroup USBD_USR_Private_Variables
   * @{
   */
+static int found_host;
 static int is_connected;
 static uint32_t operation_timestamp = 0;
 
@@ -162,6 +163,7 @@ void USBD_USR_DeviceReset(uint8_t speed){
 * @retval Status
 */
 void USBD_USR_DeviceConfigured(void){
+	found_host = 1;
 	is_connected = 1;
 	operation_timestamp = GET_TIME_MS();
     PRINT_INF("USB device configured");
@@ -185,6 +187,7 @@ void USBD_USR_DeviceSuspended(void){
 * @retval None
 */
 void USBD_USR_DeviceResumed(void){
+	found_host = 1;
 	is_connected = 1;
 	operation_timestamp = GET_TIME_MS();
     PRINT_INF("USB device resumed");
@@ -222,11 +225,19 @@ int USBD_USR_IsReleased( void ){
 	if( is_connected ){
 		return 0;
 	}
-	if( GET_TIME_MS() - operation_timestamp > 10000 ){
+	if( GET_TIME_MS() - operation_timestamp > 1500 ){
 		return 1;
 	}
 	return 0;
 }
+
+int USBD_USR_HostNotFound( void ){
+	if( found_host ){
+		return 0;
+	}
+	return 1;
+}
+
 
 
 /**

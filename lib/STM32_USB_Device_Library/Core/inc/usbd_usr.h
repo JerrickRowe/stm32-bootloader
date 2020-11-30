@@ -106,6 +106,7 @@ void     USBD_USR_HS_DeviceDisconnected(void);
   */ 
 
 int 	USBD_USR_IsReleased( void );
+int		USBD_USR_HostNotFound( void );
 int		USBD_USR_IsStorageActive( void );
 /** @defgroup USBD_USR_Exported_FunctionsPrototype
   * @{

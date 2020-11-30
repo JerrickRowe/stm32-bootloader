@@ -33,11 +33,11 @@
 
 #include "testcases.h"
 
-
 #include "usbd_msc_core.h"
 #include "usbd_usr.h"
 #include "usbd_desc.h"
 
+#include "bsp_power.h"
 
 #define DECRYPTION_ENABLED	1
 
@@ -74,8 +74,6 @@ static FIL upgrade_file;
 bool renew_freefile = false;
 
 /* Function prototypes -------------------------------------------------------*/
-void 	PowerHold( void );
-void 	PowerRelease( void );
 
 void    Enter_Bootloader(void);
 void    SD_DeInit(void);
@@ -518,6 +516,7 @@ void LaunchApp1( void ){
 	PRINT_RAW("Launching App 1.\r\n");
 	SD_DeInit();
 	GPIO_DeInit();
+	bsp_power_HoldPower();
 	// Launch application 
 	Bootloader_JumpToApp1();
 }
@@ -547,6 +546,15 @@ static bool USB_OTG( void ){
 			break;
 		}
 		case INIT_USB:{
+			USBD_Init(&USB_OTG_dev,
+			#ifdef USE_USB_OTG_HS
+				USB_OTG_HS_CORE_ID,
+			#else
+				USB_OTG_FS_CORE_ID,
+			#endif
+				&USR_desc, &USBD_MSC_cb, &USR_cb
+			);
+			// The 2nd initialization gets device to be discovered by PC
 			USBD_Init(&USB_OTG_dev,
 			#ifdef USE_USB_OTG_HS
 				USB_OTG_HS_CORE_ID,
@@ -586,10 +594,20 @@ static bool USB_OTG( void ){
 	}
 	PRINT_INF( "USB-OTG released" );
 	led_setAllRGB( RGB(0,0,0) );
-	HAL_Delay(10);
-	PowerRelease();
-	HAL_Delay(100);
-	PRINT_INF( "Failed to release power" );
+	// float usb_voltage;
+	// do{
+	// 	usb_voltage = bsp_power_GetExtPowerVoltage();
+	// 	// PRINT_INF( "usb_voltage = %.2f", usb_voltage );
+	// 	HAL_Delay(200);
+	// }while( usb_voltage > 3.0f );
+	// led_setAllRGB( RGB(0,0,0) );
+	if( !USBD_USR_HostNotFound() ){
+		HAL_Delay(100);
+		bsp_power_ReleasePower();
+		HAL_Delay(100);
+		PRINT_INF( "Failed to release power" );
+	}
+
 	sta = STARTUP;
 	return false;
 }
@@ -617,9 +635,12 @@ int main(void)
 	if( MountFilesystem() == true ){
 		PRINT_INF(	"List files:" );
 		ls( 1, "SD:" );
-
+		
 		// Run USB-OTG service
-		while( USB_OTG() ){
+		float usb_volt = bsp_power_GetExtPowerVoltage();
+		PRINT_INF(	"USB voltage = %.2fV", usb_volt );
+		if( usb_volt>0 && usb_volt<7.0f ){
+			while( USB_OTG() );
 		}
 
 		// Try to upgrade from SD card
@@ -915,20 +936,6 @@ void SD_Eject(void)
 
 
 
-#define POWER_EN_Pin	GPIO_PIN_11
-#define POWER_EN_Port	GPIOD
-#define POWER_EN_ON		GPIO_PIN_SET
-#define POWER_EN_OFF	GPIO_PIN_RESET
-
-
-void PowerHold( void ){
-	HAL_GPIO_WritePin(POWER_EN_Port,POWER_EN_Pin,POWER_EN_ON);
-}
-
-void PowerRelease( void ){
-	HAL_GPIO_WritePin(POWER_EN_Port,POWER_EN_Pin,POWER_EN_OFF);
-}
-
 
 
 /*** GPIO Configuration ***/
@@ -940,15 +947,8 @@ void GPIO_Startup(void)
     __HAL_RCC_GPIOC_CLK_ENABLE();
     __HAL_RCC_GPIOD_CLK_ENABLE();
 
-	// Power enable
-	GPIO_InitStruct.Pin = POWER_EN_Pin;
-	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-	GPIO_InitStruct.Pull = GPIO_NOPULL;
-	HAL_GPIO_Init(POWER_EN_Port, &GPIO_InitStruct);
-	HAL_GPIO_WritePin(POWER_EN_Port,POWER_EN_Pin,POWER_EN_ON);
-
-	PowerHold();
+	
+	bsp_power_HoldPower();
 
     /* Configure GPIO pin output levels */
     HAL_GPIO_WritePin(LED_G_Port, LED_G_Pin, GPIO_PIN_RESET);
