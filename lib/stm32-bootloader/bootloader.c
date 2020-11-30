@@ -581,8 +581,8 @@ uint8_t Bootloader_CheckForApp2(void)
  */
 void Bootloader_JumpToApplication(void)
 {
-    HAL_RCC_DeInit();
-    HAL_DeInit();
+//    HAL_RCC_DeInit();
+//    HAL_DeInit();
     SysTick->CTRL = 0;
     SysTick->LOAD = 0;
     SysTick->VAL  = 0;
@@ -606,8 +606,8 @@ void Bootloader_JumpToApplication(void)
  */
 void Bootloader_JumpToApp1(void)
 {
-    HAL_RCC_DeInit();
-    HAL_DeInit();
+//    HAL_RCC_DeInit();
+//    HAL_DeInit();
     SysTick->CTRL = 0;
     SysTick->LOAD = 0;
     SysTick->VAL  = 0;
@@ -632,8 +632,8 @@ void Bootloader_JumpToApp1(void)
  *//*
 void Bootloader_JumpToApp2(void)
 {
-    HAL_RCC_DeInit();
-    HAL_DeInit();
+//    HAL_RCC_DeInit();
+//    HAL_DeInit();
     SysTick->CTRL = 0;
     SysTick->LOAD = 0;
     SysTick->VAL  = 0;
