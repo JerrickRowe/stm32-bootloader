@@ -639,7 +639,7 @@ int main(void)
 		// Run USB-OTG service
 		float usb_volt = bsp_power_GetExtPowerVoltage();
 		PRINT_INF(	"USB voltage = %.2fV", usb_volt );
-		if( usb_volt>0 && usb_volt<7.0f ){
+		if( usb_volt>3.0f && usb_volt<7.0f ){
 			while( USB_OTG() );
 		}
 
