@@ -60,13 +60,14 @@ float bsp_power_GetExtPowerVoltage( void ){
 	adc_handle.Init.ScanConvMode = DISABLE;
 	adc_handle.Init.ContinuousConvMode = DISABLE;
 	adc_handle.Init.DiscontinuousConvMode = ENABLE;
+	adc_handle.Init.DMAContinuousRequests = DISABLE;
 	adc_handle.Init.ExternalTrigConv = ADC_SOFTWARE_START;
 	adc_handle.Init.DataAlign = ADC_DATAALIGN_RIGHT;
 	adc_handle.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
 	adc_handle.Init.NbrOfConversion = 1;
 	adc_handle.Init.NbrOfDiscConversion = 1;
 	HAL_ADC_Init( &adc_handle );
-
+		
 	uint32_t adc_sum=0, adc_avg=0, adc_cnt=EXT_POWER_ADC_AVG_LENGTH;
 	
 	ADC_ChannelConfTypeDef adc_channdel_cfg;
