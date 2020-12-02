@@ -2,6 +2,7 @@
 
 #include "stm32f4xx.h"
 
+#define POWER_EN_GPIO_RCC_ENABLE()		__HAL_RCC_GPIOD_CLK_ENABLE()
 #define POWER_EN_Pin	GPIO_PIN_11
 #define POWER_EN_Port	GPIOD
 #define POWER_EN_ON		GPIO_PIN_SET
@@ -17,6 +18,7 @@
 #define EXT_POWER_ADC_OFFSET				(0.0f)
 
 void bsp_power_HoldPower( void ){
+	POWER_EN_GPIO_RCC_ENABLE();
     GPIO_InitTypeDef GPIO_InitStruct;
     GPIO_InitStruct.Pin   = POWER_EN_Pin;
     GPIO_InitStruct.Mode  = GPIO_MODE_OUTPUT_PP;
@@ -27,6 +29,7 @@ void bsp_power_HoldPower( void ){
 }
 
 void bsp_power_ReleasePower( void ){
+	POWER_EN_GPIO_RCC_ENABLE();
     GPIO_InitTypeDef GPIO_InitStruct;
     GPIO_InitStruct.Pin   = POWER_EN_Pin;
     GPIO_InitStruct.Mode  = GPIO_MODE_OUTPUT_PP;

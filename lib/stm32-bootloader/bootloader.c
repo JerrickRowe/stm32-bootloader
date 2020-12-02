@@ -15,7 +15,7 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "bootloader.h"
-
+#include "bsp_power.h"
 /* Private defines -----------------------------------------------------------*/
 #define BOOTLOADER_VERSION_MAJOR 1 /*!< Major version */
 #define BOOTLOADER_VERSION_MINOR 1 /*!< Minor version */
@@ -608,6 +608,7 @@ void Bootloader_JumpToApp1(void)
 {
     HAL_RCC_DeInit();
     HAL_DeInit();
+	bsp_power_HoldPower();
     SysTick->CTRL = 0;
     SysTick->LOAD = 0;
     SysTick->VAL  = 0;
