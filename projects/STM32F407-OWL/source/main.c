@@ -633,8 +633,8 @@ int main(void)
 	led_setAllRGB( RGB(0,0,0) );
 	
 	if( MountFilesystem() == true ){
-		PRINT_INF(	"List files:" );
-		ls( 1, "SD:" );
+//		PRINT_INF(	"List files:" );
+//		ls( 1, "SD:" );
 		
 		// Run USB-OTG service
 		float usb_volt = bsp_power_GetExtPowerVoltage();
