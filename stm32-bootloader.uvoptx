@@ -152,82 +152,34 @@
         <Bp>
           <Number>0</Number>
           <Type>0</Type>
-          <LineNumber>78</LineNumber>
+          <LineNumber>348</LineNumber>
           <EnabledFlag>1</EnabledFlag>
-          <Address>134265602</Address>
+          <Address>134264860</Address>
           <ByteObject>0</ByteObject>
           <HtxType>0</HtxType>
           <ManyObjects>0</ManyObjects>
           <SizeOfObject>0</SizeOfObject>
           <BreakByAccess>0</BreakByAccess>
           <BreakIfRCount>1</BreakIfRCount>
-          <Filename>.\projects\STM32F407-OWL\source\bsp_power.c</Filename>
+          <Filename>.\projects\STM32F407-OWL\source\main.c</Filename>
           <ExecCommand></ExecCommand>
-          <Expression>\\stm32_bootloader\projects/STM32F407-OWL/source/bsp_power.c\78</Expression>
+          <Expression>\\stm32_bootloader\projects/STM32F407-OWL/source/main.c\348</Expression>
         </Bp>
         <Bp>
           <Number>1</Number>
           <Type>0</Type>
-          <LineNumber>96</LineNumber>
+          <LineNumber>337</LineNumber>
           <EnabledFlag>1</EnabledFlag>
-          <Address>134265760</Address>
+          <Address>134264762</Address>
           <ByteObject>0</ByteObject>
           <HtxType>0</HtxType>
           <ManyObjects>0</ManyObjects>
           <SizeOfObject>0</SizeOfObject>
           <BreakByAccess>0</BreakByAccess>
           <BreakIfRCount>1</BreakIfRCount>
-          <Filename>.\projects\STM32F407-OWL\source\bsp_power.c</Filename>
+          <Filename>.\projects\STM32F407-OWL\source\main.c</Filename>
           <ExecCommand></ExecCommand>
-          <Expression>\\stm32_bootloader\projects/STM32F407-OWL/source/bsp_power.c\96</Expression>
-        </Bp>
-        <Bp>
-          <Number>2</Number>
-          <Type>0</Type>
-          <LineNumber>68</LineNumber>
-          <EnabledFlag>1</EnabledFlag>
-          <Address>134265556</Address>
-          <ByteObject>0</ByteObject>
-          <HtxType>0</HtxType>
-          <ManyObjects>0</ManyObjects>
-          <SizeOfObject>0</SizeOfObject>
-          <BreakByAccess>0</BreakByAccess>
-          <BreakIfRCount>1</BreakIfRCount>
-          <Filename>.\projects\STM32F407-OWL\source\bsp_power.c</Filename>
-          <ExecCommand></ExecCommand>
-          <Expression>\\stm32_bootloader\projects/STM32F407-OWL/source/bsp_power.c\68</Expression>
-        </Bp>
-        <Bp>
-          <Number>3</Number>
-          <Type>0</Type>
-          <LineNumber>1881</LineNumber>
-          <EnabledFlag>1</EnabledFlag>
-          <Address>134220154</Address>
-          <ByteObject>0</ByteObject>
-          <HtxType>0</HtxType>
-          <ManyObjects>0</ManyObjects>
-          <SizeOfObject>0</SizeOfObject>
-          <BreakByAccess>0</BreakByAccess>
-          <BreakIfRCount>1</BreakIfRCount>
-          <Filename>.\drivers\STM32F4xx_HAL_Driver\Src\stm32f4xx_hal_adc.c</Filename>
-          <ExecCommand></ExecCommand>
-          <Expression>\\stm32_bootloader\drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_adc.c\1881</Expression>
-        </Bp>
-        <Bp>
-          <Number>4</Number>
-          <Type>0</Type>
-          <LineNumber>1932</LineNumber>
-          <EnabledFlag>1</EnabledFlag>
-          <Address>134220406</Address>
-          <ByteObject>0</ByteObject>
-          <HtxType>0</HtxType>
-          <ManyObjects>0</ManyObjects>
-          <SizeOfObject>0</SizeOfObject>
-          <BreakByAccess>0</BreakByAccess>
-          <BreakIfRCount>1</BreakIfRCount>
-          <Filename>.\drivers\STM32F4xx_HAL_Driver\Src\stm32f4xx_hal_adc.c</Filename>
-          <ExecCommand></ExecCommand>
-          <Expression>\\stm32_bootloader\drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_adc.c\1932</Expression>
+          <Expression>\\stm32_bootloader\projects/STM32F407-OWL/source/main.c\337</Expression>
         </Bp>
       </Breakpoint>
       <WatchWindow1>
@@ -278,8 +230,8 @@
       <MemoryWindow2>
         <Mm>
           <WinNumber>2</WinNumber>
-          <SubType>0</SubType>
-          <ItemText>ReadAddr</ItemText>
+          <SubType>2</SubType>
+          <ItemText>buff</ItemText>
           <AccSizeX>0</AccSizeX>
         </Mm>
       </MemoryWindow2>

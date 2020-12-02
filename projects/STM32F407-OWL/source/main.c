@@ -333,7 +333,7 @@ bool VerifyUpgradeFile( FIL* fp ){
 		goto ERROR;
     }
 
-	PRINT_RAW( "  CRC.." );
+	PRINT_RAW( "  Verifying" );
 	f_rewind(fp);
 	uint32_t scan = 0;
 	uint32_t boundary = (APP1_SIZE+4)/512;
@@ -636,17 +636,17 @@ int main(void)
 //		PRINT_INF(	"List files:" );
 //		ls( 1, "SD:" );
 		
+		// Try to upgrade from SD card
+		if( UpgradeFromSD() == true ){
+			// renew_freefile = true;
+//			LaunchApp1();
+		}
+
 		// Run USB-OTG service
 		float usb_volt = bsp_power_GetExtPowerVoltage();
 		PRINT_INF(	"USB voltage = %.2fV", usb_volt );
 		if( usb_volt>3.0f && usb_volt<7.0f ){
 			while( USB_OTG() );
-		}
-
-		// Try to upgrade from SD card
-		if( UpgradeFromSD() == true ){
-			// renew_freefile = true;
-			LaunchApp1();
 		}
 
 		// No need to upgrade or upgrade failed.
