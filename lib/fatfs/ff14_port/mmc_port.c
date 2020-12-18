@@ -33,8 +33,8 @@ int MMC_disk_read(
 	LBA_t sector,	/* Start sector in LBA */
 	UINT count		/* Number of sectors to read */
 ){
-	while( BSP_SD_GetCardState() == SD_TRANSFER_BUSY );
-	int result = BSP_SD_ReadBlocks( buff, sector, count, 100 );
+	while( BSP_SD_GetCardState() != SD_TRANSFER_OK );
+	int result = BSP_SD_ReadBlocks( buff, sector, count, 1000 );
 	if( result == MSD_OK ){
 		return (int)count;
 	}else{
@@ -47,8 +47,8 @@ int MMC_disk_write(
 	LBA_t sector,		/* Start sector in LBA */
 	UINT count			/* Number of sectors to write */ 
 ){
-	while( BSP_SD_GetCardState() == SD_TRANSFER_BUSY );
-	int result = BSP_SD_WriteBlocks( buff, sector, count, 100 );
+	while( BSP_SD_GetCardState() != SD_TRANSFER_OK );
+	int result = BSP_SD_WriteBlocks( buff, sector, count, 1000 );
 	if( result == MSD_OK ){
 		return (int)count;
 	}else{

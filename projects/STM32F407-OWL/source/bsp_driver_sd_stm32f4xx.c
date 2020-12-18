@@ -140,7 +140,8 @@ uint8_t BSP_SD_ReadBlocks(uint32_t* pData,
     {
         sd_state = MSD_ERROR;
     }
-
+//	printf( "ReadAddr =  0x%08X\r\n", ReadAddr );
+//	printMem( "BSP_SD_ReadBlocks", pData, NumOfBlocks*512 );
     return sd_state;
 }
 

@@ -147,7 +147,7 @@ const char* get_version_string( void ){
   * @retval None
   */
 static uint32_t tick;
-void HAL_IncTick(void)
+inline void HAL_IncTick(void)
 {
 	tick ++;
 	if( tick % 25 == 0 ){
@@ -237,6 +237,47 @@ bool MountFilesystem( void ){
 
 
 
+void led_toggling( uint32_t rgb1, uint32_t rgb2, uint32_t interval_ms ){
+	static uint32_t toggle_timestamp = 0;
+	if( HAL_GetTick() - toggle_timestamp > interval_ms ){
+		toggle_timestamp = HAL_GetTick();
+		static bool toggle = false;
+		if( toggle ){
+			toggle = false;
+			led_setAllRGB( rgb1 );
+		}else{
+			toggle = true;
+			led_setAllRGB( rgb2 );
+		}
+	}
+}
+
+void led_filling( uint32_t rgb, uint32_t interval_ms ){
+	static uint32_t timestamp = 0;
+	if( HAL_GetTick() - timestamp > interval_ms ){
+		timestamp = HAL_GetTick();
+		static int step = 0;
+		switch( step ){
+		case 0:
+			led_setRGB( 0, rgb );
+			break;
+		case 1:
+			led_setRGB( 1, rgb );
+			break;
+		case 2:
+			led_setRGB( 2, rgb );
+			break;
+		case 3:
+			led_setAllRGB( 0 );
+			break;
+		}
+		if( ++step > 3 ){
+			step = 0;
+		}
+	}
+}
+
+
 void Copy_App2_To_App1( void ){
 	PRINT_RAW("Copy App2 to App1.");
 	
@@ -305,6 +346,7 @@ bool Copy_File_To_App1( FIL* fp ){
 		if( scan%64 == 0 ){
 			PRINT_RAW( "." );
 		}
+		led_filling( RGB(0,0,50), 150 );
 	}
 	Bootloader_FlashEnd();
 	PRINT_RAW("Done\r\n");
@@ -333,7 +375,7 @@ bool VerifyUpgradeFile( FIL* fp ){
 		goto ERROR;
     }
 
-	PRINT_RAW( "  Verifying" );
+	PRINT_RAW( "  CRC.." );
 	f_rewind(fp);
 	uint32_t scan = 0;
 	uint32_t boundary = (APP1_SIZE+4)/512;
@@ -350,7 +392,8 @@ bool VerifyUpgradeFile( FIL* fp ){
 		// Verification
 		if( scan == 0 ){ // First unit
 			if( ((*(uint32_t*)buff - RAM_BASE) > RAM_SIZE) ){
-				PRINT_ERR( "Bad MSP[0x%08X]", *(uint32_t*)buff );
+				PRINT_RAW( "........................ABORT\r\n" );
+				PRINT_ERR( "  Bad MSP[0x%08X]", *(uint32_t*)buff );
 				goto ERROR;
 			}
 			calculatedCrc = HAL_CRC_Accumulate(&CrcHandle, (uint32_t*)buff, 512/4);
@@ -362,13 +405,16 @@ bool VerifyUpgradeFile( FIL* fp ){
 		if( scan%64 == 0 ){
 			PRINT_RAW( "." );
 		}
+		led_filling( RGB(0,0,50), 150 );
 	}
-
-    if( *(uint32_t*)&(buff[512-4]) != calculatedCrc ){
-		PRINT_RAW( "CRC failed [0x%08X]", calculatedCrc );
+	
+	uint32_t fileCrc = *(uint32_t*)&(buff[512-4]);	
+    if( fileCrc != calculatedCrc ){
+		PRINT_RAW( "CRC unmatched. [%08X/%08X]", fileCrc, calculatedCrc );
 		goto ERROR;
-    }
-	PRINT_RAW( "Pass\r\n" );
+    }else{
+		PRINT_RAW( "CRC matched. [%08X]\r\n", fileCrc );
+	}
 
 	PRINT_INF( "  %s is verified", UPGRADE_FILENAME );
     return true;
@@ -436,6 +482,30 @@ bool IsApp1Jumpable( void ){
 }
 
 
+
+void printMem( const char *pTag, void *addr, unsigned int n ){
+	int i=0;
+	if( !n ){
+		return;
+	}
+	printf( "\r\n\x1B[1;32m[M] Addr=0x%X ""%s""\x1B[0;32m" "\r\n" "\x1B[4;92m" "     | ", (uint32_t)addr, pTag );
+	for( i=0; i<((n>16)?16:n); i++ ){
+		printf( " %X|", i, i+16 );
+	}
+	for( i=0; i<((n<16)?n:(((n-1)/16+1)*16)); i++ ){
+		if( i%16 == 0 ){
+			printf( "\x1B[4;92m""\r\n""%4XH|""\x1B[0;39m"" ", i ); //\x1B[4;32m
+		}
+		if( i < n ){
+			printf( "%02X ", 0x000000FF & ((uint8_t *)addr)[i] );
+		}else{
+			printf( "   " );
+		}
+	}
+	printf( "\x1B[0;39m""\r\n\n" );
+}
+
+
 bool UpgradeFromSD( void ){
 	FRESULT res;
 	FILINFO file_info;
@@ -445,12 +515,17 @@ bool UpgradeFromSD( void ){
 		return false;
 	}
 	PRINT_RAW("Opening \"%s\"......", UPGRADE_FILENAME);
-	res = f_open(&upgrade_file, UPGRADE_FILENAME, FA_READ);
+	res = f_open(&upgrade_file, UPGRADE_FILENAME, FA_OPEN_EXISTING | FA_READ);
 	if( res != FR_OK ){
 		PRINT_RAW("FAILED\r\n");
 		return false;
 	}
 	PRINT_RAW("DONE\r\n");
+
+//	UINT br = 0;
+//	static uint8_t buff[512];
+//	res = f_read( &upgrade_file, buff, 512, &br );
+//	printMem( "upgrade_file #0", buff, 512 );
 
 	if( VerifyUpgradeFile( &upgrade_file ) == false ){
 		return false;
@@ -458,8 +533,9 @@ bool UpgradeFromSD( void ){
 	if( Copy_File_To_App1( &upgrade_file ) == false ){
 		return false;
 	}
-
 	f_close( &upgrade_file );
+
+	led_setAllRGB( RGB(0,0,50) );
 
 	if( IsApp1Jumpable() == false ){
 		return false;
@@ -521,7 +597,6 @@ void LaunchApp1( void ){
 	Bootloader_JumpToApp1();
 }
 
-
 __ALIGN_BEGIN USB_OTG_CORE_HANDLE USB_OTG_dev __ALIGN_END;
 static bool USB_OTG( void ){
 	static enum{
@@ -568,18 +643,7 @@ static bool USB_OTG( void ){
 		}
 		case RUNNING:{
 			if( USBD_USR_IsStorageActive() ){
-				static uint32_t toggle_timestamp = 0;
-				if( HAL_GetTick() - toggle_timestamp > 50 ){
-					toggle_timestamp = HAL_GetTick();
-					static bool toggle = false;
-					if( toggle ){
-						toggle = false;
-						led_setAllRGB( RGB(0,0,100) );
-					}else{
-						toggle = true;
-						led_setAllRGB( RGB(0,0,50) );
-					}
-				}
+				led_toggling( RGB(0,0,50), RGB(0,0,100), 50 );
 			}else{
 				led_setAllRGB( RGB(0,0,50) );
 			}
@@ -1113,7 +1177,7 @@ void SystemClock_Config(void)
     /* Configure the Systick */
     HAL_SYSTICK_Config(HAL_RCC_GetHCLKFreq() / 1000);
     HAL_SYSTICK_CLKSourceConfig(SYSTICK_CLKSOURCE_HCLK);
-    HAL_NVIC_SetPriority(SysTick_IRQn, 0, 0);
+    HAL_NVIC_SetPriority(SysTick_IRQn, 1, 0);
 }
 
 /*** HAL MSP init ***/

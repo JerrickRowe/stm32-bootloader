@@ -34,4 +34,6 @@
 
 #define RTE_DEVICE_HAL_ADC
 
+#define RTE_DEVICE_HAL_WWDG
+
 #endif /* RTE_COMPONENTS_H */
