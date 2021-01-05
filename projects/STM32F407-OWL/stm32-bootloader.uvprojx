@@ -276,7 +276,7 @@
               <OCR_RVCT4>
                 <Type>1</Type>
                 <StartAddress>0x8000000</StartAddress>
-                <Size>0x10000</Size>
+                <Size>0x20000</Size>
               </OCR_RVCT4>
               <OCR_RVCT5>
                 <Type>1</Type>
@@ -483,6 +483,11 @@
               <FileName>LED_Serial.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\source\LED_Serial.c</FilePath>
+            </File>
+            <File>
+              <FileName>bsp_power.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\source\bsp_power.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -930,11 +935,6 @@
           <GroupName>fs</GroupName>
           <Files>
             <File>
-              <FileName>diskio.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\lib\fatfs\ff14\source\diskio.c</FilePath>
-            </File>
-            <File>
               <FileName>ff.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\lib\fatfs\ff14\source\ff.c</FilePath>
@@ -958,6 +958,11 @@
               <FileName>testcases.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\lib\fatfs\ff14_port\testcases.c</FilePath>
+            </File>
+            <File>
+              <FileName>diskio.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\lib\fatfs\ff14_port\diskio.c</FilePath>
             </File>
           </Files>
         </Group>
