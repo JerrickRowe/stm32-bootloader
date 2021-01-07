@@ -274,14 +274,18 @@ int USBD_USR_IsStorageActive( void ){
 	return 0;
 }
 
+/**
+  * @}
+  */
+uint32_t USBD_USR_GetTimestamp_LastWrite( void ){
+	return timestamp_last_write;
+}
 
 /**
   * @}
   */
-
-
-/**
-  * @}
-  */
+uint32_t USBD_USR_GetTimestamp_LastRead( void ){
+	return timestamp_last_read;
+}
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

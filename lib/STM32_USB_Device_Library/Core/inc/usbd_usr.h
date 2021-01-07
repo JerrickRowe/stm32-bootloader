@@ -25,6 +25,7 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "usbd_ioreq.h"
+#include <stdint.h>
 /** @addtogroup USBD_USER
   * @{
   */
@@ -108,6 +109,8 @@ void     USBD_USR_HS_DeviceDisconnected(void);
 int 	USBD_USR_IsReleased( void );
 int		USBD_USR_HostNotFound( void );
 int		USBD_USR_IsStorageActive( void );
+uint32_t USBD_USR_GetTimestamp_LastWrite( void );
+uint32_t USBD_USR_GetTimestamp_LastRead( void );
 /** @defgroup USBD_USR_Exported_FunctionsPrototype
   * @{
   */ 

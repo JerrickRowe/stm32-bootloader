@@ -249,6 +249,39 @@ void USB_OTG_BSP_Init(USB_OTG_CORE_HANDLE * pdev)
 #endif                          /* USE_STM322xG_EVAL */
 }
 
+
+/**
+* @brief  USB_OTG_BSP_DisableInterrupt
+*         Disable USB Global interrupt
+* @param  None
+* @retval None
+*/
+void USB_OTG_BSP_DisableInterrupt(USB_OTG_CORE_HANDLE * pdev)
+{
+#ifndef USE_HAL_DRIVER
+  NVIC_InitTypeDef NVIC_InitStructure;
+  NVIC_PriorityGroupConfig(NVIC_PriorityGroup_1);
+#ifdef USE_USB_OTG_HS
+  NVIC_InitStructure.NVIC_IRQChannel = OTG_HS_IRQn;
+#else
+  NVIC_InitStructure.NVIC_IRQChannel = OTG_FS_IRQn;
+#endif
+  NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 2;
+  NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
+  NVIC_InitStructure.NVIC_IRQChannelCmd = DISABLE;
+  NVIC_Init(&NVIC_InitStructure);
+#else
+	#ifdef USE_USB_OTG_HS
+		HAL_NVIC_SetPriority(OTG_HS_IRQn, 0, 0);
+		HAL_NVIC_EnableIRQ(OTG_HS_IRQn);
+	#else
+		HAL_NVIC_SetPriority(OTG_FS_IRQn, 5, 0);
+		HAL_NVIC_EnableIRQ(OTG_FS_IRQn);
+	#endif
+#endif
+}
+
+
 /**
 * @brief  USB_OTG_BSP_EnableInterrupt
 *         Enable USB Global interrupt
