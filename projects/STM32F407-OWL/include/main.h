@@ -7,7 +7,8 @@
 /* File name of application located on SD card */
 #define CONF_FILENAME "config.txt"
 
-#define UPGRADE_FILENAME	"SD:/upgrade.bin"
+#define RC_UPGRADE_FILENAME	"SD:/rc-fw.bin"
+#define UPGRADE_FILENAME	"SD:/owl-fw.bin"
 #define BACKUP_FILENAME		"SD:/backup.bin"
 /* For development/debugging: stdout/stderr via SWO trace */
 #define USE_SWO_TRACE 0

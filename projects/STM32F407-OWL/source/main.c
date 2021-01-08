@@ -22,6 +22,7 @@
 #include "ff.h"
 #include "led.h"
 #include "bsp_WS2812x.h"
+#include "bsp_driver_sd.h"
 #include "Indicator.h"
 #include <assert.h>
 #include <stdio.h>
@@ -41,6 +42,9 @@
 
 #define DECRYPTION_ENABLED	1
 
+#define OWL_RC_UPGRADE_FILESIZE			(0xA000)
+#define OWL_UPGRADE_FILESIZE			((APP1_SIZE)+4u)
+#define COMBINED_UPGRADE_FILESIZE 		(OWL_UPGRADE_FILESIZE + OWL_RC_UPGRADE_FILESIZE)
 
 #define DEBUG 1
 #if DEBUG
@@ -318,7 +322,6 @@ bool Copy_File_To_App1( FIL* fp ){
 	f_rewind(fp);
 	uint32_t scan = 0;
 	uint32_t boundary = (APP1_SIZE+4)/512;
-	
 	Bootloader_FlashBegin();
 	for( scan=0; scan<boundary; scan++ ){
 		res = f_read( fp, buff, 512, &br );
@@ -346,7 +349,7 @@ bool Copy_File_To_App1( FIL* fp ){
 		if( scan%64 == 0 ){
 			PRINT_RAW( "." );
 		}
-		led_filling( RGB(0,0,50), 150 );
+		led_filling( RGB(0xAD,0x3D,0x00), 150 );
 	}
 	Bootloader_FlashEnd();
 	PRINT_RAW("Done\r\n");
@@ -360,7 +363,7 @@ bool VerifyUpgradeFile( FIL* fp ){
 	uint8_t buff[512];
 	PRINT_INF("Verifying upgrade file:");
 
-	if( f_size( fp ) != APP1_SIZE+4 ){
+	if( f_size( fp ) < OWL_UPGRADE_FILESIZE ){
 		PRINT_ERR( "  Incorrect file size" );
 		goto ERROR;
 	}
@@ -405,7 +408,7 @@ bool VerifyUpgradeFile( FIL* fp ){
 		if( scan%64 == 0 ){
 			PRINT_RAW( "." );
 		}
-		led_filling( RGB(0,0,50), 150 );
+		led_filling( RGB(0xAD,0x3D,0x00), 150 );
 	}
 	
 	uint32_t fileCrc = *(uint32_t*)&(buff[512-4]);	
@@ -505,11 +508,43 @@ void printMem( const char *pTag, void *addr, unsigned int n ){
 	printf( "\x1B[0;39m""\r\n\n" );
 }
 
+static uint8_t buff[4096];
+bool GenerateRC_UpgradeFile( FIL* fp ){
+	FRESULT res;
+	UINT br, bw;
+	FIL rc_upgrade_file;
+	uint8_t buff[4096];
+	PRINT_INF("Generating "RC_UPGRADE_FILENAME );
+	res = f_open( &rc_upgrade_file, RC_UPGRADE_FILENAME, FA_CREATE_ALWAYS|FA_WRITE );
+	if( res != FR_OK ){
+		PRINT_INF("Failed to create "RC_UPGRADE_FILENAME );
+		return false;
+	}
+	f_lseek( fp, OWL_UPGRADE_FILESIZE );
+	if( res != FR_OK ){
+		PRINT_INF("Failed to seek 0x%08X", OWL_UPGRADE_FILESIZE );
+		return false;
+	}
+	while( !f_eof(fp) ){
+		res = f_read( fp, buff, sizeof(buff), &br );
+		if( res!=FR_OK ){
+			PRINT_ERR( "Error while reading [%d,%d]", res, br );
+			return false;
+		}
+		res = f_write( &rc_upgrade_file, buff, br, &bw );
+		if( res!=FR_OK ){
+			PRINT_ERR( "Error while writing [%d,%d]", res, bw );
+			return false;
+		}
+		led_filling( RGB(0xAD,0x3D,0x00), 150 );
+	}
+	f_close( &rc_upgrade_file );
+	return true;
+}
+
 
 bool UpgradeFromSD( void ){
 	FRESULT res;
-	FILINFO file_info;
-	FILINFO fno;
 	
 	if( IsUpgradeFileExists() == false ){
 		return false;
@@ -526,16 +561,19 @@ bool UpgradeFromSD( void ){
 //	static uint8_t buff[512];
 //	res = f_read( &upgrade_file, buff, 512, &br );
 //	printMem( "upgrade_file #0", buff, 512 );
-
 	if( VerifyUpgradeFile( &upgrade_file ) == false ){
 		return false;
+	}
+	// Generate RC upgrade file
+	if( f_size(&upgrade_file) > OWL_UPGRADE_FILESIZE ){
+		GenerateRC_UpgradeFile( &upgrade_file );
 	}
 	if( Copy_File_To_App1( &upgrade_file ) == false ){
 		return false;
 	}
 	f_close( &upgrade_file );
 
-	led_setAllRGB( RGB(0,0,50) );
+	led_setAllRGB( RGB(0xAD,0x3D,0x00) );
 
 	if( IsApp1Jumpable() == false ){
 		return false;
@@ -677,6 +715,54 @@ static bool USB_OTG( void ){
 }
 
 
+bool IsSDcardOnline( void ){
+	int err = (int)BSP_SD_Init();
+	if( err == MSD_OK ){
+		return true;
+	}
+	return false;
+}
+
+
+bool IsKeyFilesPresent( void ){
+	FRESULT res;
+	FILINFO fno;
+	static bool checkingIsNeeded = false;
+	if( HAL_GetTick() - USBD_USR_GetTimestamp_LastWrite() < 1000 ){
+		checkingIsNeeded = true;
+		return false;
+	}
+	if( checkingIsNeeded == false ){
+		return false;
+	}
+	/*
+	__disable_irq();
+	ls( 1, "SD:" );
+	__enable_irq();
+	*/
+
+	PRINT_RAW("Finding \"%s\"......", UPGRADE_FILENAME);
+	__disable_irq();
+	res = f_stat(UPGRADE_FILENAME, &fno);
+	__enable_irq();
+	checkingIsNeeded = false;	
+    if(res != FR_OK){
+		PRINT_INF("NOTFOUND");
+        return false;
+	}
+	PRINT_INF("FOUND");
+	PRINT_INF("  %s %dbytes"
+	,	fno.fname
+	,	fno.fsize
+	);
+	if( fno.fsize < OWL_UPGRADE_FILESIZE ){
+		PRINT_ERR( "  Incorrect file size" );
+		return false;
+	}
+	return true;
+}
+
+
 /* Main ----------------------------------------------------------------------*/
 int main(void)
 {
@@ -701,16 +787,33 @@ int main(void)
 //		ls( 1, "SD:" );
 		
 		// Try to upgrade from SD card
-		if( UpgradeFromSD() == true ){
+		// if( UpgradeFromSD() == true ){
 			// renew_freefile = true;
 //			LaunchApp1();
-		}
+		//}
 
 		// Run USB-OTG service
 		float usb_volt = bsp_power_GetExtPowerVoltage();
 		PRINT_INF(	"USB voltage = %.2fV", usb_volt );
 		if( usb_volt>3.0f && usb_volt<7.0f ){
-			while( USB_OTG() );
+			while( USB_OTG() ){
+				if( IsKeyFilesPresent() ){
+					PRINT_INF("Upgrade now");
+					// Try to upgrade with new file
+					USB_OTG_BSP_DisableInterrupt();
+					//__disable_irq();
+					if( UpgradeFromSD() == false ){
+						PRINT_ERR("Upgrade failed");
+						USB_OTG_BSP_EnableInterrupt();
+						//__enable_irq();
+						continue;
+					}
+					USB_OTG_BSP_EnableInterrupt();
+					//__enable_irq();
+					PRINT_INF("Upgrade succeed");
+					break;
+				}
+			}
 		}
 
 		// No need to upgrade or upgrade failed.
@@ -734,6 +837,16 @@ int main(void)
 			}
 		}
 	}else{
+		// Run USB service if sdcard is online
+		if( IsSDcardOnline() ){
+			PRINT_INF(	"SDcard is online" );
+			// Run USB-OTG service
+			float usb_volt = bsp_power_GetExtPowerVoltage();
+			PRINT_INF(	"USB voltage = %.2fV", usb_volt );
+			if( usb_volt>3.0f && usb_volt<7.0f ){
+				while( USB_OTG() );
+			}
+		}
 		// Try to run app without SD card.
 		if( IsApp1Jumpable() == true ){
 			LaunchApp1();
