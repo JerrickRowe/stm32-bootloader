@@ -115,7 +115,7 @@ DRESULT disk_read (
 {
 	DRESULT res;
 	int result;
-
+    BSP_SD_CardInfo CardInfo;
 	switch (pdrv) {
 	// case DEV_RAM :
 	// 	// translate the arguments here
@@ -128,7 +128,12 @@ DRESULT disk_read (
 
 	case DEV_MMC :
 		// translate the arguments here
-
+		BSP_SD_GetCardInfo(&CardInfo);
+		if( !CardInfo.BlockSize ){
+			return RES_PARERR;
+		}
+		sector *= CardInfo.BlockSize;
+		sector /= CardInfo.BlockSize;
 		result = MMC_disk_read(buff, sector, count);
 
 		// translate the reslut code here
@@ -169,7 +174,7 @@ DRESULT disk_write (
 {
 	DRESULT res;
 	int result;
-
+    BSP_SD_CardInfo CardInfo;
 	switch (pdrv) {
 	// case DEV_RAM :
 	// 	// translate the arguments here
@@ -182,6 +187,12 @@ DRESULT disk_write (
 
 	case DEV_MMC :
 		// translate the arguments here
+		BSP_SD_GetCardInfo(&CardInfo);
+		if( !CardInfo.BlockSize ){
+			return RES_PARERR;
+		}
+		sector *= CardInfo.BlockSize;
+		sector /= CardInfo.BlockSize;
 		result = MMC_disk_write(buff, sector, count);
 
 		// translate the reslut code here

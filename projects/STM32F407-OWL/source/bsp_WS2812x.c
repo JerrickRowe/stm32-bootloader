@@ -12,6 +12,9 @@ WS2812_T g_tWs2812RGB;
 #define		RGB_LED_HIGH	(GPIOB->ODR |= (1<<13))
 #define 	RGB_LED_LOW		(GPIOB->ODR &= ~(1<<13))
 
+#define 	COLOR_DATA_ORDER_RGB
+//#define 	COLOR_DATA_ORDER_GRB
+
 #define numLEDs 3
 
 void delay_100ns( uint16_t t ){
@@ -60,9 +63,15 @@ static void Send_8bits(uint8_t dat)
 void Send_2811_24bits(uint8_t RData,uint8_t GData,uint8_t BData)
 {
 	__disable_irq();
+#ifdef COLOR_DATA_ORDER_RGB
+    Send_8bits(RData);
+    Send_8bits(GData);
+    Send_8bits(BData);
+#elif defined(COLOR_DATA_ORDER_GRB)
     Send_8bits(GData);
     Send_8bits(RData);
     Send_8bits(BData);
+#endif
 	__enable_irq();
 }
 

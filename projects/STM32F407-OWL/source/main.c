@@ -322,6 +322,8 @@ bool Copy_File_To_App1( FIL* fp ){
 	f_rewind(fp);
 	uint32_t scan = 0;
 	uint32_t boundary = (APP1_SIZE+4)/512;
+	led_setAllRGB( RGB(0xAD,0x3D,0x00) );
+	HAL_Delay(100);
 	Bootloader_FlashBegin();
 	for( scan=0; scan<boundary; scan++ ){
 		res = f_read( fp, buff, 512, &br );
@@ -513,14 +515,13 @@ bool GenerateRC_UpgradeFile( FIL* fp ){
 	FRESULT res;
 	UINT br, bw;
 	FIL rc_upgrade_file;
-	uint8_t buff[4096];
 	PRINT_INF("Generating "RC_UPGRADE_FILENAME );
 	res = f_open( &rc_upgrade_file, RC_UPGRADE_FILENAME, FA_CREATE_ALWAYS|FA_WRITE );
 	if( res != FR_OK ){
 		PRINT_INF("Failed to create "RC_UPGRADE_FILENAME );
 		return false;
 	}
-	f_lseek( fp, OWL_UPGRADE_FILESIZE );
+	res = f_lseek( fp, OWL_UPGRADE_FILESIZE );
 	if( res != FR_OK ){
 		PRINT_INF("Failed to seek 0x%08X", OWL_UPGRADE_FILESIZE );
 		return false;
@@ -631,6 +632,7 @@ void LaunchApp1( void ){
 	SD_DeInit();
 	GPIO_DeInit();
 	bsp_power_HoldPower();
+	HAL_Delay(100);
 	// Launch application 
 	Bootloader_JumpToApp1();
 }
@@ -735,16 +737,27 @@ bool IsKeyFilesPresent( void ){
 	if( checkingIsNeeded == false ){
 		return false;
 	}
-	/*
-	__disable_irq();
-	ls( 1, "SD:" );
-	__enable_irq();
-	*/
-
+	if(  HAL_GetTick() - USBD_USR_GetTimestamp_LastRead() < 1000  ){
+		return false;
+	}
+	
+	// __disable_irq();
+	// ls( 1, "SD:" );
+	// __enable_irq();
+	
 	PRINT_RAW("Finding \"%s\"......", UPGRADE_FILENAME);
-	__disable_irq();
+//	__disable_irq();
+	USB_OTG_BSP_DisableInterrupt();
+    /* Mount SD card */
+    res = f_mount(&SDFatFs, (TCHAR const*)SDPath, 1);
+    if(res != FR_OK){
+        /* f_mount failed */
+        PRINT_INF("MNT_FAILED [0x%02X]",res);
+        return false;
+    }
 	res = f_stat(UPGRADE_FILENAME, &fno);
-	__enable_irq();
+//	__enable_irq();
+	USB_OTG_BSP_EnableInterrupt();
 	checkingIsNeeded = false;	
     if(res != FR_OK){
 		PRINT_INF("NOTFOUND");
@@ -785,36 +798,47 @@ int main(void)
 	if( MountFilesystem() == true ){
 //		PRINT_INF(	"List files:" );
 //		ls( 1, "SD:" );
-		
-		// Try to upgrade from SD card
-		// if( UpgradeFromSD() == true ){
-			// renew_freefile = true;
-//			LaunchApp1();
-		//}
 
 		// Run USB-OTG service
 		float usb_volt = bsp_power_GetExtPowerVoltage();
 		PRINT_INF(	"USB voltage = %.2fV", usb_volt );
 		if( usb_volt>3.0f && usb_volt<7.0f ){
 			while( USB_OTG() ){
-				if( IsKeyFilesPresent() ){
-					PRINT_INF("Upgrade now");
-					// Try to upgrade with new file
+				if( IsKeyFilesPresent() 
+				&& !USBD_USR_IsStorageActive() 
+				&& HAL_GetTick() > 5000
+				){
 					USB_OTG_BSP_DisableInterrupt();
-					//__disable_irq();
-					if( UpgradeFromSD() == false ){
+					HAL_Delay(500);
+					// PRINT_INF("Upgrade now");
+					// Try to upgrade with new file
+
+					// Try to upgrade from SD card
+					if( UpgradeFromSD() == true ){
+						PRINT_INF("Upgrade succeed");
+						// renew_freefile = true;
+						LaunchApp1();
+					}else{
 						PRINT_ERR("Upgrade failed");
 						USB_OTG_BSP_EnableInterrupt();
-						//__enable_irq();
 						continue;
 					}
-					USB_OTG_BSP_EnableInterrupt();
-					//__enable_irq();
-					PRINT_INF("Upgrade succeed");
 					break;
 				}
+				if( !bsp_power_isExtPowerOnline() ){
+					bsp_power_ReleasePower();
+				}
 			}
+			
+//			HAL_Delay(200);
+//			led_setAllRGB( RGB(0,0,0) );
+//			while(1){
+//				if( !bsp_power_isExtPowerOnline() ){
+//					bsp_power_ReleasePower();
+//				}
+//			}
 		}
+		
 
 		// No need to upgrade or upgrade failed.
 		if( IsApp1Jumpable() == true ){

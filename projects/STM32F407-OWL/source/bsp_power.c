@@ -8,6 +8,12 @@
 #define POWER_EN_ON		GPIO_PIN_SET
 #define POWER_EN_OFF	GPIO_PIN_RESET
 
+//-------- Ext power detect pin ---------
+#define EXT_POWER_DETECT_GPIO_RCC_ENABLE()		__HAL_RCC_GPIOD_CLK_ENABLE()
+#define EXT_POWER_DETECT_Pin	GPIO_PIN_15
+#define EXT_POWER_DETECT_Port	GPIOD
+#define EXT_POWER_DETECT_ON		GPIO_PIN_SET
+
 #define EXT_POWER_ADC_RCC_ENABLE()			__HAL_RCC_ADC1_CLK_ENABLE()
 #define EXT_POWER_ADC_GPIO_RCC_ENABLE()		__HAL_RCC_GPIOC_CLK_ENABLE()
 #define EXT_POWER_ADC_GPIO_PORT				GPIOC
@@ -95,6 +101,21 @@ float bsp_power_GetExtPowerVoltage( void ){
 	ret = adc_avg*EXT_POWER_ADC_FACTOR + EXT_POWER_ADC_OFFSET;
 
 	return ret;
+}
+
+
+
+bool bsp_power_isExtPowerOnline( void ){
+	GPIO_InitTypeDef gpio_init_struct;
+	EXT_POWER_DETECT_GPIO_RCC_ENABLE();
+	gpio_init_struct.Pin = EXT_POWER_DETECT_Pin;
+	gpio_init_struct.Mode = GPIO_MODE_INPUT;
+	gpio_init_struct.Pull = GPIO_PULLUP;
+	HAL_GPIO_Init( EXT_POWER_DETECT_Port, &gpio_init_struct );
+	if( HAL_GPIO_ReadPin(EXT_POWER_DETECT_Port,EXT_POWER_DETECT_Pin) == EXT_POWER_DETECT_ON ){
+		return true;
+	}
+	return false;
 }
 
 
