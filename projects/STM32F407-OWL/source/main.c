@@ -74,6 +74,7 @@ FATFS SDFatFs;   /* File system object for SD logical drive */
 FIL   SDFile;    /* File object for SD */
 static FIL upgrade_file;
 
+IWDG_HandleTypeDef iwdg;
 /* Private variables ---------------------------------------------------------*/
 bool renew_freefile = false;
 
@@ -324,8 +325,12 @@ bool Copy_File_To_App1( FIL* fp ){
 	uint32_t boundary = (APP1_SIZE+4)/512;
 	led_setAllRGB( RGB(0xAD,0x3D,0x00) );
 	HAL_Delay(100);
+	iwdg.Init.Prescaler = IWDG_PRESCALER_128;
+	HAL_IWDG_Init( &iwdg );
+	HAL_IWDG_Refresh( &iwdg );
 	Bootloader_FlashBegin();
 	for( scan=0; scan<boundary; scan++ ){
+		HAL_IWDG_Refresh( &iwdg );
 		res = f_read( fp, buff, 512, &br );
 		if(res!=FR_OK || br!=512){
 			PRINT_ERR( "  f_read error [0x%02X] byte read=%d", res, br );
@@ -354,6 +359,9 @@ bool Copy_File_To_App1( FIL* fp ){
 		led_filling( RGB(0xAD,0x3D,0x00), 150 );
 	}
 	Bootloader_FlashEnd();
+	iwdg.Init.Prescaler = IWDG_PRESCALER_16;
+	HAL_IWDG_Init( &iwdg );
+	HAL_IWDG_Refresh( &iwdg );
 	PRINT_RAW("Done\r\n");
 	return true;
 }
@@ -385,6 +393,7 @@ bool VerifyUpgradeFile( FIL* fp ){
 	uint32_t scan = 0;
 	uint32_t boundary = (APP1_SIZE+4)/512;
 	for( scan=0; scan<boundary; scan++ ){
+		HAL_IWDG_Refresh( &iwdg );
 		res = f_read( fp, buff, 512, &br );
 		if(res!=FR_OK || br!=512){
 			PRINT_ERR( "f_read error [0x%02X] byte read=%d", res, br );
@@ -527,6 +536,7 @@ bool GenerateRC_UpgradeFile( FIL* fp ){
 		return false;
 	}
 	while( !f_eof(fp) ){
+		HAL_IWDG_Refresh( &iwdg );
 		res = f_read( fp, buff, sizeof(buff), &br );
 		if( res!=FR_OK ){
 			PRINT_ERR( "Error while reading [%d,%d]", res, br );
@@ -781,8 +791,21 @@ int main(void)
 {
     HAL_Init();
     GPIO_Startup();
-
+	iwdg.Instance = IWDG;
+	iwdg.Init.Prescaler = IWDG_PRESCALER_16;
+	iwdg.Init.Reload = 0xFFF;
+	HAL_IWDG_Init( &iwdg );
+	HAL_IWDG_Refresh( &iwdg );
+	
 	Console_Init();
+	
+	while( HAL_GetTick() < 200 ){
+		if( !bsp_power_isExtPowerOnline() ){
+			bsp_power_ReleasePower();
+		}
+		HAL_IWDG_Refresh( &iwdg );
+	}
+	bsp_power_HoldPower();
 	
 	led_init();
     PRINT_RAW("%s\r\n",get_version_string());
@@ -794,6 +817,7 @@ int main(void)
 	led_setAllRGB( RGB(0,0,255) );
     HAL_Delay(200);
 	led_setAllRGB( RGB(0,0,0) );
+	HAL_IWDG_Refresh( &iwdg );
 	
 	if( MountFilesystem() == true ){
 //		PRINT_INF(	"List files:" );
@@ -804,6 +828,7 @@ int main(void)
 		PRINT_INF(	"USB voltage = %.2fV", usb_volt );
 		if( usb_volt>3.0f && usb_volt<7.0f ){
 			while( USB_OTG() ){
+				HAL_IWDG_Refresh( &iwdg );
 				if( IsKeyFilesPresent() 
 				&& !USBD_USR_IsStorageActive() 
 				&& HAL_GetTick() > 5000
@@ -884,6 +909,7 @@ int main(void)
 		HAL_Delay(150);
 		led_setAllRGB( RGB(0,0,0) );
 		HAL_Delay(150);
+		HAL_IWDG_Refresh( &iwdg );
     }
 }
 
