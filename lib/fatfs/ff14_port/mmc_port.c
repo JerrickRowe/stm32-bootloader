@@ -2,7 +2,10 @@
 #include "ff.h"
 #include "bsp_driver_sd.h"
 
+#ifndef DEBUG
 #define DEBUG 1
+#endif
+
 #if DEBUG
 #include <stdio.h>
 #define PRINT_RAW(fmt,...)	printf( fmt,##__VA_ARGS__ )

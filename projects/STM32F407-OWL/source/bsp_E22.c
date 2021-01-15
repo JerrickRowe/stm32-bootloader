@@ -16,27 +16,41 @@
 */
 
 #include "bsp_E22.h"
-#include "bsp_board.h"
+#include "main.h"
 #ifdef __cplusplus
 extern "C"{
 #endif
 
-#include "BspUsart.h"
+//#include "BspUsart.h"
 
-#include "FreeRTOS.h"
-#include "task.h"
+//#include "FreeRTOS.h"
+//#include "task.h"
 
-#define DEBUG_PRINT	1
-#include "debug_print.h"
+//#define DEBUG_PRINT	1
+//#include "debug_print.h"
+
+#ifndef DEBUG
+#define DEBUG 1
+#endif
+#if DEBUG
+#include <stdio.h>
+#define PRINT_RAW(fmt,...)	printf( fmt,##__VA_ARGS__ )
+#define PRINT_INF(fmt,...)	printf( fmt"\r\n",##__VA_ARGS__ )
+#define PRINT_ERR(fmt,...)	printf( fmt"\r\n",##__VA_ARGS__ )
+#else
+#define PRINT_RAW(fmt,...)	
+#define PRINT_INF(fmt,...)	
+#define PRINT_ERR(fmt,...)	
+#endif
 
 
-#include "timer.h"
-#define GET_TIME_MS()	uptime_ms_get()
-#define WAIT_MS(ms)	vTaskDelay( pdMS_TO_TICKS(ms) )
+//#include "timer.h"
+#define GET_TIME_MS()	HAL_GetTick()
+#define WAIT_MS(ms)		Delay_MS(ms)
 
 /* 开关全局中断的宏 */
-#define ENABLE_INT()	vPortClearBASEPRIFromISR()	/* 使能全局中断 */
-#define DISABLE_INT()	vPortRaiseBASEPRI()	/* 禁止全局中断 */
+#define ENABLE_INT()	__enable_irq()	/* 使能全局中断 */
+#define DISABLE_INT()	__disable_irq()	/* 禁止全局中断 */
 
 // E22的配置GPIO  PA8, PD10   AUX 
 // #define E22_M0_GPIO_CLK_ENABLE()	  //RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
@@ -44,12 +58,12 @@ extern "C"{
 // #define E22_M0_PIN                    RC_M0_Pin
 
 #define E22_M1_GPIO_CLK_ENABLE()      //RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOD, ENABLE);
-#define E22_M1_GPIO_PORT              RC_M1_Port
-#define E22_M1_PIN                    RC_M1_Pin
+#define E22_M1_GPIO_PORT              GPIOD
+#define E22_M1_PIN                    GPIO_PIN_10
 
 #define E22_AUX_GPIO_CLK_ENABLE()      //RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOD, ENABLE);
-#define E22_AUX_GPIO_PORT              RC_AUX_Port
-#define E22_AUX_PIN                    RC_AUX_Pin
+#define E22_AUX_GPIO_PORT              GPIOA
+#define E22_AUX_PIN                    GPIO_PIN_8
 
 E22_T g_tE22Self;   //遥控器端的E22结构体  
 E22_T g_tE22Other;	//降落伞端的E22结构体   可以进行远程配置。只在遥控器端有用
@@ -57,12 +71,12 @@ E22_T g_tE22Other;	//降落伞端的E22结构体   可以进行远程配置。只在遥控器端有用
 
 /* 串口1的GPIO --- RS323 */
 #define UART1_TX_PORT      GPIOA
-#define UART1_TX_PIN       GPIO_Pin_9
+#define UART1_TX_PIN       GPIO_PIN_9
 #define UART1_TX_CLK       RCC_AHB1Periph_GPIOA
 #define UART1_TX_SOURCE    GPIO_PinSource9
 
 #define UART1_RX_PORT      GPIOA
-#define UART1_RX_PIN       GPIO_Pin_10
+#define UART1_RX_PIN       GPIO_PIN_10
 #define UART1_RX_CLK       RCC_AHB1Periph_GPIOA
 #define UART1_RX_SOURCE    GPIO_PinSource10
 
@@ -84,6 +98,13 @@ static void ConfigUartNVIC(void);
 
 void RS485_InitTXE(void);
 
+
+static void Delay_MS( uint32_t ms ){
+	uint32_t target_tick = GET_TIME_MS() + ms;
+	while( GET_TIME_MS() < target_tick );
+}
+
+
 /*
 *********************************************************************************************************
 *	函 数 名: bsp_InitUart
@@ -96,9 +117,9 @@ void bsp_InitUart(void)
 {
 	UartVarInit();		/* 必须先初始化全局变量,再配置硬件 */
 
-	// InitHardUart();		/* 配置串口的硬件参数(波特率等) */
-
 	ConfigUartNVIC();	/* 配置串口中断 */
+	
+	InitHardUart();		/* 配置串口的硬件参数(波特率等) */
 }
 
 /*
@@ -238,7 +259,7 @@ void comSendBuf(COM_PORT_E _ucPort, uint8_t *_ucaBuf, uint16_t _usLen)
 {
   while (_usLen--)
   {
-      xQueueSend( uart1_tx_queue, _ucaBuf++, portMAX_DELAY );
+     
   }
 }
 
@@ -356,58 +377,21 @@ void comSetBaud(COM_PORT_E _ucPort, uint32_t _BaudRate)
 *	返 回 值: 无
 *********************************************************************************************************
 */
+static USART_HandleTypeDef rc_usart_handle;
 void USART_SetBaudRate(USART_TypeDef* USARTx, uint32_t BaudRate)
 {
-	uint32_t tmpreg = 0x00, apbclock = 0x00;
-	uint32_t integerdivider = 0x00;
-	uint32_t fractionaldivider = 0x00;
-	RCC_ClocksTypeDef RCC_ClocksStatus;
-
-	/* Check the parameters */
-	assert_param(IS_USART_ALL_PERIPH(USARTx));
-	assert_param(IS_USART_BAUDRATE(BaudRate));  
-
-	/*---------------------------- USART BRR Configuration -----------------------*/
-	/* Configure the USART Baud Rate */
-	RCC_GetClocksFreq(&RCC_ClocksStatus);
-
-	if ((USARTx == USART1) || (USARTx == USART6))
-	{
-		apbclock = RCC_ClocksStatus.PCLK2_Frequency;
-	}
-	else
-	{
-		apbclock = RCC_ClocksStatus.PCLK1_Frequency;
-	}
-
-	/* Determine the integer part */
-	if ((USARTx->CR1 & USART_CR1_OVER8) != 0)
-	{
-		/* Integer part computing in case Oversampling mode is 8 Samples */
-		integerdivider = ((25 * apbclock) / (2 * (BaudRate)));    
-	}
-	else /* if ((USARTx->CR1 & USART_CR1_OVER8) == 0) */
-	{
-		/* Integer part computing in case Oversampling mode is 16 Samples */
-		integerdivider = ((25 * apbclock) / (4 * (BaudRate)));    
-	}
-	tmpreg = (integerdivider / 100) << 4;
-
-	/* Determine the fractional part */
-	fractionaldivider = integerdivider - (100 * (tmpreg >> 4));
-
-	/* Implement the fractional part in the register */
-	if ((USARTx->CR1 & USART_CR1_OVER8) != 0)
-	{
-		tmpreg |= ((((fractionaldivider * 8) + 50) / 100)) & ((uint8_t)0x07);
-	}
-	else /* if ((USARTx->CR1 & USART_CR1_OVER8) == 0) */
-	{
-		tmpreg |= ((((fractionaldivider * 16) + 50) / 100)) & ((uint8_t)0x0F);
-	}
-
-	/* Write to USART BRR register */
-	USARTx->BRR = (uint16_t)tmpreg;
+	USART_HandleTypeDef *handle = &rc_usart_handle;
+	
+	handle->Instance = USART1;
+	handle->State = HAL_USART_STATE_RESET;
+	handle->Init.BaudRate = BaudRate;
+	handle->Init.StopBits = USART_STOPBITS_1;
+	handle->Init.WordLength = USART_WORDLENGTH_8B;
+	handle->Init.Parity = USART_PARITY_NONE;
+	handle->Init.Mode = USART_MODE_TX_RX;
+	HAL_USART_Init( handle );
+	__HAL_USART_ENABLE_IT( handle, USART_IT_RXNE );
+	// SET_BIT( handle->Instance->CR1, USART_CR1_RXNEIE );
 }
 
 
@@ -477,88 +461,26 @@ static void UartVarInit(void)
 */
 static void InitHardUart(void)
 {
+	__HAL_RCC_GPIOA_CLK_ENABLE();
+	__HAL_RCC_USART1_CLK_ENABLE();
+	
 	GPIO_InitTypeDef GPIO_InitStructure;
-	USART_InitTypeDef USART_InitStructure;
-
-#if UART1_FIFO_EN == 1		/* 串口1 TX = PA9   RX = PA10 或 TX = PB6   RX = PB7*/
-
-	/* 第1步： 配置GPIO */
-	#if 1	/* TX = PA9   RX = PA10 */
-		/* 打开 GPIO 时钟 */
-		RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
-
-		/* 打开 UART 时钟 */
-		RCC_APB2PeriphClockCmd(RCC_APB2Periph_USART1, ENABLE);
-
-		/* 将 PA9 映射为 USART1_TX */
-		GPIO_PinAFConfig(GPIOA, GPIO_PinSource9, GPIO_AF_USART1);
-
-		/* 将 PA10 映射为 USART1_RX */
-		GPIO_PinAFConfig(GPIOA, GPIO_PinSource10, GPIO_AF_USART1);
-
-		/* 配置 USART Tx 为复用功能 */
-		GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;	/* 输出类型为推挽 */
-		GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;	/* 内部上拉电阻使能 */
-		GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;	/* 复用模式 */
-
-		GPIO_InitStructure.GPIO_Pin = GPIO_Pin_9;
-		GPIO_InitStructure.GPIO_Speed = GPIO_Speed_100MHz;
-		GPIO_Init(GPIOA, &GPIO_InitStructure);
-
-		/* 配置 USART Rx 为复用功能 */
-		GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
-		GPIO_InitStructure.GPIO_Pin = GPIO_Pin_10;
-		GPIO_Init(GPIOA, &GPIO_InitStructure);
-	#else	/* TX = PB6   RX = PB7  */
-		/* 打开 GPIO 时钟 */
-		RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE);
-
-		/* 打开 UART 时钟 */
-		RCC_APB2PeriphClockCmd(RCC_APB2Periph_USART1, ENABLE);
-
-		/* 将 PB6 映射为 USART1_TX */
-		GPIO_PinAFConfig(GPIOB, GPIO_PinSource6, GPIO_AF_USART1);
-
-		/* 将 PB7 映射为 USART1_RX */
-		GPIO_PinAFConfig(GPIOB, GPIO_PinSource7, GPIO_AF_USART1);
-
-		/* 配置 USART Tx 为复用功能 */
-		GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;	/* 输出类型为推挽 */
-		GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;	/* 内部上拉电阻使能 */
-		GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;	/* 复用模式 */
-
-		GPIO_InitStructure.GPIO_Pin = GPIO_Pin_6;
-		GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-		GPIO_Init(GPIOB, &GPIO_InitStructure);
-
-		/* 配置 USART Rx 为复用功能 */
-		GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
-		GPIO_InitStructure.GPIO_Pin = GPIO_Pin_7;
-		GPIO_Init(GPIOB, &GPIO_InitStructure);
-	#endif
-
-	/* 第2步： 配置串口硬件参数 */
-	USART_InitStructure.USART_BaudRate = UART1_BAUD;	/* 波特率 */
-	USART_InitStructure.USART_WordLength = USART_WordLength_8b;
-	USART_InitStructure.USART_StopBits = USART_StopBits_1;
-	USART_InitStructure.USART_Parity = USART_Parity_No ;
-	USART_InitStructure.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
-	USART_InitStructure.USART_Mode = USART_Mode_Rx | USART_Mode_Tx;
-	USART_Init(USART1, &USART_InitStructure);
-
-	USART_ITConfig(USART1, USART_IT_RXNE, ENABLE);	/* 使能接收中断 */
-	/*
-		USART_ITConfig(USART1, USART_IT_TXE, ENABLE);
-		注意: 不要在此处打开发送中断
-		发送中断使能在SendUart()函数打开
-	*/
-	USART_Cmd(USART1, ENABLE);		/* 使能串口 */
-
-	/* CPU的小缺陷：串口配置好，如果直接Send，则第1个字节发送不出去
-		如下语句解决第1个字节无法正确发送出去的问题 */
-	USART_ClearFlag(USART1, USART_FLAG_TC);     /* 清发送完成标志，Transmission Complete flag */
-#endif
-
+	
+	GPIO_InitStructure.Pin   = UART1_TX_PIN;	// Tx
+	GPIO_InitStructure.Mode  = GPIO_MODE_AF_PP;
+	GPIO_InitStructure.Speed = GPIO_SPEED_FAST;
+	GPIO_InitStructure.Alternate = GPIO_AF7_USART1;
+	GPIO_InitStructure.Pull  = GPIO_PULLUP;
+	HAL_GPIO_Init( UART1_TX_PORT, &GPIO_InitStructure );
+	
+	GPIO_InitStructure.Pin   = UART1_RX_PIN;	// Rx
+	GPIO_InitStructure.Mode  = GPIO_MODE_AF_OD;
+	GPIO_InitStructure.Speed = GPIO_SPEED_FAST;
+	GPIO_InitStructure.Alternate = GPIO_AF7_USART1;
+	GPIO_InitStructure.Pull  = GPIO_PULLUP;
+	HAL_GPIO_Init( UART1_RX_PORT, &GPIO_InitStructure );
+	
+	
 }
 
 /*
@@ -571,18 +493,15 @@ static void InitHardUart(void)
 */
 static void ConfigUartNVIC(void)
 {
-	NVIC_InitTypeDef NVIC_InitStructure;
-
-	/* Configure the NVIC Preemption Priority Bits */
-	/*	NVIC_PriorityGroupConfig(NVIC_PriorityGroup_0);  --- 在 bsp.c 中 bsp_Init() 中配置中断优先级组 */
-
-#if UART1_FIFO_EN == 1
-	/* 使能串口1中断 */
-	NVIC_InitStructure.NVIC_IRQChannel = USART1_IRQn;
-	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 5;
-	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
-	NVIC_Init(&NVIC_InitStructure);
-#endif
+	
+//	NVIC_InitTypeDef NVIC_InitStructure;
+//	/* 使能串口1中断 */
+//	NVIC_InitStructure.NVIC_IRQChannel = USART1_IRQn;
+//	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 5;
+//	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+//	NVIC_Init(&NVIC_InitStructure);
+	HAL_NVIC_EnableIRQ( USART1_IRQn );
+//#endif
 
 }
 
@@ -668,13 +587,7 @@ static void UartSend(UART_T *_pUart, uint8_t *_ucaBuf, uint16_t _usLen)
 */
 static uint8_t UartGetChar(UART_T *_pUart, uint8_t *_pByte)
 {
-	BaseType_t err;
 
-	err = xQueueReceive(uart1_rx_queue, _pByte, 0);
-	if( err == pdTRUE ){
-		// comSendBuf( COM1, _pByte, 1 ); // echo
-		return 1;
-	}
 	return 0;
 }
 
@@ -782,9 +695,10 @@ static void UartIRQ(UART_T *_pUart)
 */
 void bsp_InitE22(void)
 {
-	
 	E22VarInit();		/* 必须先初始化配置全局变量,再配置硬件 */
 
+	bsp_InitUart();
+	
 	InitHardE22();		/* 配置E22的硬件参数 */
 
 }
@@ -812,20 +726,19 @@ static void InitHardE22(void)
 	
 	/* 配置M1引脚 */
 	E22_M1_GPIO_CLK_ENABLE();
-	GPIO_InitStruct.GPIO_Pin       = E22_M1_PIN;
-	GPIO_InitStruct.GPIO_Mode      = GPIO_Mode_OUT;
-	GPIO_InitStruct.GPIO_OType 	   = GPIO_OType_PP;	
-	GPIO_InitStruct.GPIO_PuPd      = GPIO_PuPd_DOWN;
-	GPIO_InitStruct.GPIO_Speed     = GPIO_Speed_100MHz;
-	GPIO_Init(E22_M1_GPIO_PORT, &GPIO_InitStruct);	
+	GPIO_InitStruct.Pin       = E22_M1_PIN;
+	GPIO_InitStruct.Mode      = GPIO_MODE_OUTPUT_PP;
+	GPIO_InitStruct.Pull      = GPIO_NOPULL;
+	GPIO_InitStruct.Speed     = GPIO_SPEED_LOW;
+	HAL_GPIO_Init(E22_M1_GPIO_PORT, &GPIO_InitStruct);	
 
 	/* 配置AUX引脚 */
 	E22_AUX_GPIO_CLK_ENABLE();
-	GPIO_InitStruct.GPIO_Pin       = E22_AUX_PIN;
-	GPIO_InitStruct.GPIO_Mode      = GPIO_Mode_IN;
-	GPIO_InitStruct.GPIO_PuPd      = GPIO_PuPd_DOWN;  
-	GPIO_InitStruct.GPIO_Speed     = GPIO_Speed_100MHz;
-	GPIO_Init(E22_AUX_GPIO_PORT, &GPIO_InitStruct);	
+	GPIO_InitStruct.Pin       = E22_AUX_PIN;
+	GPIO_InitStruct.Mode      = GPIO_MODE_INPUT;
+	GPIO_InitStruct.Pull      = GPIO_PULLUP;  
+	GPIO_InitStruct.Speed     = GPIO_SPEED_LOW;
+	HAL_GPIO_Init(E22_AUX_GPIO_PORT, &GPIO_InitStruct);	
 
 //	E22ParaConfigure();//上电配置一下  实际使用中不需要每一次都初始化
 	E22SetWorkMode(0); //设置工作模式为0
@@ -893,51 +806,52 @@ static uint8_t E22WorkMode;
 void E22SetWorkMode(uint8_t mode)
 {
 	uint32_t timestamp = GET_TIME_MS();
-	while( GPIO_ReadInputDataBit(E22_AUX_GPIO_PORT, E22_AUX_PIN) == RESET ){
+	while( HAL_GPIO_ReadPin(E22_AUX_GPIO_PORT, E22_AUX_PIN) == GPIO_PIN_RESET ){
 		if( GET_TIME_MS() - timestamp > 1000 ){
-			PRINT_ERR( "", "Wait AUX timeout." );
+			PRINT_ERR( "E22-AUX timeout." );
 			break;
 		}
-		WAIT_MS(1);
+		FeedGlobalWatchdog();
 	}
 	E22WorkMode = mode;
 	if(mode == 0)
 	{
-	GPIO_ResetBits(E22_M1_GPIO_PORT,E22_M1_PIN);    //M1=0
+	HAL_GPIO_WritePin(E22_M1_GPIO_PORT,E22_M1_PIN,GPIO_PIN_RESET);    //M1=0
 	// GPIO_ResetBits(E22_M0_GPIO_PORT,E22_M0_PIN);    //M0=0
-	// USART1_Baudrate_Set( 115200 );
+	USART_SetBaudRate( USART1, 115200 );
 	}
 	else if(mode == 1)
 	{
-	GPIO_ResetBits(E22_M1_GPIO_PORT,E22_M1_PIN);    //M1=0
+	HAL_GPIO_WritePin(E22_M1_GPIO_PORT,E22_M1_PIN,GPIO_PIN_RESET);    //M1=0
 	// GPIO_SetBits(E22_M0_GPIO_PORT,E22_M0_PIN);      //M0=1
-	// USART1_Baudrate_Set( 115200 );
+	USART_SetBaudRate( USART1, 115200 );
 	}
 	else if(mode == 2)
 	{
-	GPIO_SetBits(E22_M1_GPIO_PORT,E22_M1_PIN);      //M1=1
+	HAL_GPIO_WritePin(E22_M1_GPIO_PORT,E22_M1_PIN,GPIO_PIN_SET);      //M1=1
 	// GPIO_ResetBits(E22_M0_GPIO_PORT,E22_M0_PIN);    //M0=0
-	USART1_Baudrate_Set( 9600 );
+	USART_SetBaudRate( USART1, 9600 );
 	}
 	else if(mode == 3)
 	{
-	GPIO_SetBits(E22_M1_GPIO_PORT,E22_M1_PIN);    //M1=1
+	HAL_GPIO_WritePin(E22_M1_GPIO_PORT,E22_M1_PIN,GPIO_PIN_SET);    //M1=1
 	// GPIO_SetBits(E22_M0_GPIO_PORT,E22_M0_PIN);    //M0=1
-	// USART1_Baudrate_Set( 115200 );
+	USART_SetBaudRate( USART1, 115200 );
 	}
 	else
 	{
 //		Error_Handler(__FILE__, __LINE__);
 //		printf("选择E22模式错误");
-		PRINT_ERR( "", "Invalid mode. [0~3]" );
+		PRINT_ERR( "Invalid mode. [0~3]" );
 	}
 	WAIT_MS(40);
 	timestamp = GET_TIME_MS();
-	while( GPIO_ReadInputDataBit(E22_AUX_GPIO_PORT, E22_AUX_PIN) == RESET ){
+	while( HAL_GPIO_ReadPin(E22_AUX_GPIO_PORT, E22_AUX_PIN) == GPIO_PIN_RESET ){
 		if( GET_TIME_MS() - timestamp > 500 ){
-			PRINT_ERR( "", "Wait AUX timeout." );
+			PRINT_ERR( "E22-AUX timeout." );
 			break;
 		}
+		FeedGlobalWatchdog();
 		WAIT_MS(1);
 	}
 }
@@ -1041,8 +955,7 @@ void bsp_InitE22AndUart1(void)
 {
 	
 	bsp_InitE22();
-	// bsp_InitUart();
-	StateVarInit();
+	bsp_InitUart();
 
 }
 
@@ -1078,19 +991,19 @@ void E22_Config_Write( uint8_t* pData, size_t n )
 	WAIT_MS(100);
 	uint8_t s_sendCount = 0;
 	DISABLE_INT();
-	while(s_sendCount < n)
-	{
-		while( USART_GetFlagStatus(USART1, USART_FLAG_TC) == RESET );
-		USART_SendData(USART1, pData[s_sendCount++]);
-	}
+
+	HAL_USART_Transmit( &rc_usart_handle, pData, n, 0 );
 	// E22SetWorkMode(0);
 	ENABLE_INT();
 }
 
 
 void _RC_bsp_SendByte( uint16_t byte ){
-	while( USART_GetFlagStatus(USART1, USART_FLAG_TC) == RESET );
-	USART_SendData(USART1, byte);
+	HAL_USART_Transmit( &rc_usart_handle, &byte, 1, 0 );
+}
+
+void _RC_bsp_SendNByte( uint16_t *pData, int n ){
+	HAL_USART_Transmit( &rc_usart_handle, &pData, n, 0 );
 }
 
 
@@ -1123,9 +1036,9 @@ void _RC_bsp_RecoverFromUpgradeMode( void ){
 	uint8_t config_06[] ={0xC0,0x06,0x01,0x80};
 
 	E22_Config_Write( config_03, sizeof(config_03) );
-	WAIT_MS(500);
+	WAIT_MS(100);
 	E22_Config_Write( config_06, sizeof(config_06) );
-	WAIT_MS(500);
+	WAIT_MS(100);
 	
 	/*恢复串口波特率为115200*/
 	// WAIT_MS(300);
@@ -1134,6 +1047,37 @@ void _RC_bsp_RecoverFromUpgradeMode( void ){
 	E22SetWorkMode(0);
 	WAIT_MS(200);
 }
+
+
+static uint32_t RxTimestamp;
+static uint32_t dataCnt = 0;
+void USART1_IRQHandler( void ){
+	FeedGlobalWatchdog();
+	if (__HAL_USART_GET_FLAG(&rc_usart_handle, USART_FLAG_RXNE) ){
+		uint16_t data = rc_usart_handle.Instance->DR;
+		RxTimestamp = GET_TIME_MS();
+		dataCnt ++;
+	}
+	// HAL_USART_IRQHandler( &rc_usart_handle );
+}
+
+void HAL_USART_RxCpltCallback(USART_HandleTypeDef *husart){
+	RxTimestamp = GET_TIME_MS();
+	dataCnt ++;
+}
+
+uint32_t bsp_E22_GetLastRxTimestamp( void ){
+	return RxTimestamp;
+}
+
+uint32_t bsp_E22_GetIncomingDataCnt( void ){
+	return dataCnt;
+}
+
+void bsp_E22_ClearIncomingData( void ){
+	dataCnt = 0;
+}
+
 
 #ifdef __cplusplus
 }

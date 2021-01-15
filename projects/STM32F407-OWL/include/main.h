@@ -28,6 +28,8 @@
 #define SD_PWR_Port GPIOC
 #define SD_PWR_Pin  GPIO_PIN_7
 
+void FeedGlobalWatchdog( void );
+
 /* Hardware Macros -----------------------------------------------------------*/
 #define SDCARD_ON()  HAL_GPIO_WritePin(SD_PWR_Port, SD_PWR_Pin, GPIO_PIN_RESET)
 #define SDCARD_OFF() HAL_GPIO_WritePin(SD_PWR_Port, SD_PWR_Pin, GPIO_PIN_SET)

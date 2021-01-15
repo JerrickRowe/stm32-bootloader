@@ -58,7 +58,9 @@
 
 #define GET_TIME_MS()	HAL_GetTick()
 
+#ifndef DEBUG
 #define DEBUG 1
+#endif
 #if DEBUG
 #include <stdio.h>
 #define PRINT_RAW(fmt,...)	printf( fmt,##__VA_ARGS__ )
@@ -175,8 +177,8 @@ void USBD_USR_DeviceConfigured(void){
 * @retval None
 */
 void USBD_USR_DeviceSuspended(void){
-	is_connected = 0;
-	operation_timestamp = 0;
+//	is_connected = 0;
+	operation_timestamp = GET_TIME_MS();
     PRINT_INF("USB device suspended");
 }
 
@@ -213,7 +215,7 @@ void USBD_USR_DeviceConnected(void){
 */
 void USBD_USR_DeviceDisconnected(void){
 	is_connected = 0;
-	operation_timestamp = 0;
+	operation_timestamp = GET_TIME_MS();
     PRINT_INF("USB device disconnected");
 }
 
@@ -225,7 +227,7 @@ int USBD_USR_IsReleased( void ){
 	if( is_connected ){
 		return 0;
 	}
-	if( GET_TIME_MS() - operation_timestamp > 1500 ){
+	if( operation_timestamp && GET_TIME_MS()-operation_timestamp > 1500 ){
 		return 1;
 	}
 	return 0;

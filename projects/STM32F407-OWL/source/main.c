@@ -21,8 +21,11 @@
 #include "tea.h"
 #include "ff.h"
 #include "led.h"
+#include "usb_bsp.h"
 #include "bsp_WS2812x.h"
 #include "bsp_driver_sd.h"
+#include "remote_control.h"
+
 #include "Indicator.h"
 #include <assert.h>
 #include <stdio.h>
@@ -46,7 +49,9 @@
 #define OWL_UPGRADE_FILESIZE			((APP1_SIZE)+4u)
 #define COMBINED_UPGRADE_FILESIZE 		(OWL_UPGRADE_FILESIZE + OWL_RC_UPGRADE_FILESIZE)
 
+#ifndef DEBUG
 #define DEBUG 1
+#endif
 #if DEBUG
 #include <stdio.h>
 #define PRINT_RAW(fmt,...)	printf( fmt,##__VA_ARGS__ )
@@ -77,6 +82,8 @@ static FIL upgrade_file;
 IWDG_HandleTypeDef iwdg;
 /* Private variables ---------------------------------------------------------*/
 bool renew_freefile = false;
+
+
 
 /* Function prototypes -------------------------------------------------------*/
 
@@ -122,9 +129,8 @@ void getBuildTimeStr_YYYYMMDDhhss(char *pDes){
 }
 
 
-const char* get_version_string( void ){
-	static char str[500];
-	print( "\n\n\n\n\n\r" 
+void print_logo( void ){
+	printf( "\n\n\n\n\n\r""\x1B[0;39m" 
 		"______  _        ______  _             \r\n"
 		"|  ___|| |       |  ___|(_)            \r\n"
 		"| |_   | | _   _ | |_    _  _ __   ___ \r\n"
@@ -134,10 +140,15 @@ const char* get_version_string( void ){
 		"            __/ |                      \r\n"
 		"           |___/                       \r\n"
 	);
+}
+
+const char* get_version_string( void ){
+	static char str[500];
 	snprintf( str, sizeof(str), "%s-V%d.%d-%s-", PRJ_STR, VER, REV, GIT_COMMIT_HEAD );
 	getBuildTimeStr_YYYYMMDDhhss(str+strlen(str));
 	return str;
 }
+
 
 
 
@@ -314,6 +325,10 @@ void Copy_App2_To_App1( void ){
 }
 
 
+void FeedGlobalWatchdog( void ){
+	HAL_IWDG_Refresh( &iwdg );
+}
+
 bool Copy_File_To_App1( FIL* fp ){
 	FRESULT res;
 	UINT br = 0;
@@ -327,10 +342,10 @@ bool Copy_File_To_App1( FIL* fp ){
 	HAL_Delay(100);
 	iwdg.Init.Prescaler = IWDG_PRESCALER_128;
 	HAL_IWDG_Init( &iwdg );
-	HAL_IWDG_Refresh( &iwdg );
+	FeedGlobalWatchdog();
 	Bootloader_FlashBegin();
 	for( scan=0; scan<boundary; scan++ ){
-		HAL_IWDG_Refresh( &iwdg );
+		FeedGlobalWatchdog();
 		res = f_read( fp, buff, 512, &br );
 		if(res!=FR_OK || br!=512){
 			PRINT_ERR( "  f_read error [0x%02X] byte read=%d", res, br );
@@ -361,7 +376,7 @@ bool Copy_File_To_App1( FIL* fp ){
 	Bootloader_FlashEnd();
 	iwdg.Init.Prescaler = IWDG_PRESCALER_16;
 	HAL_IWDG_Init( &iwdg );
-	HAL_IWDG_Refresh( &iwdg );
+	FeedGlobalWatchdog();
 	PRINT_RAW("Done\r\n");
 	return true;
 }
@@ -393,7 +408,7 @@ bool VerifyUpgradeFile( FIL* fp ){
 	uint32_t scan = 0;
 	uint32_t boundary = (APP1_SIZE+4)/512;
 	for( scan=0; scan<boundary; scan++ ){
-		HAL_IWDG_Refresh( &iwdg );
+		FeedGlobalWatchdog();
 		res = f_read( fp, buff, 512, &br );
 		if(res!=FR_OK || br!=512){
 			PRINT_ERR( "f_read error [0x%02X] byte read=%d", res, br );
@@ -536,7 +551,7 @@ bool GenerateRC_UpgradeFile( FIL* fp ){
 		return false;
 	}
 	while( !f_eof(fp) ){
-		HAL_IWDG_Refresh( &iwdg );
+		FeedGlobalWatchdog();
 		res = f_read( fp, buff, sizeof(buff), &br );
 		if( res!=FR_OK ){
 			PRINT_ERR( "Error while reading [%d,%d]", res, br );
@@ -757,7 +772,7 @@ bool IsKeyFilesPresent( void ){
 	
 	PRINT_RAW("Finding \"%s\"......", UPGRADE_FILENAME);
 //	__disable_irq();
-	USB_OTG_BSP_DisableInterrupt();
+	USB_OTG_BSP_DisableInterrupt( NULL );
     /* Mount SD card */
     res = f_mount(&SDFatFs, (TCHAR const*)SDPath, 1);
     if(res != FR_OK){
@@ -767,7 +782,7 @@ bool IsKeyFilesPresent( void ){
     }
 	res = f_stat(UPGRADE_FILENAME, &fno);
 //	__enable_irq();
-	USB_OTG_BSP_EnableInterrupt();
+	USB_OTG_BSP_EnableInterrupt( NULL );
 	checkingIsNeeded = false;	
     if(res != FR_OK){
 		PRINT_INF("NOTFOUND");
@@ -791,33 +806,54 @@ int main(void)
 {
     HAL_Init();
     GPIO_Startup();
+	USB_OTG_BSP_DisableInterrupt( NULL );
+	
+	#if DEBUG
+		__HAL_DBGMCU_FREEZE_IWDG();
+	#endif
+	
 	iwdg.Instance = IWDG;
 	iwdg.Init.Prescaler = IWDG_PRESCALER_16;
 	iwdg.Init.Reload = 0xFFF;
 	HAL_IWDG_Init( &iwdg );
-	HAL_IWDG_Refresh( &iwdg );
+	FeedGlobalWatchdog();
 	
 	Console_Init();
 	
-	while( HAL_GetTick() < 200 ){
+	while( HAL_GetTick() < 50 ){
 		if( !bsp_power_isExtPowerOnline() ){
 			bsp_power_ReleasePower();
 		}
-		HAL_IWDG_Refresh( &iwdg );
+		FeedGlobalWatchdog();
 	}
+	
 	bsp_power_HoldPower();
+	FeedGlobalWatchdog();
 	
 	led_init();
-    PRINT_RAW("%s\r\n",get_version_string());
+	
+	print_logo();
+    printf("%s\r\n",get_version_string());
+	
 	led_allon();
 	led_setAllRGB( RGB(255,0,0) );
     HAL_Delay(200);
 	led_setAllRGB( RGB(0,255,0) );
     HAL_Delay(200);
 	led_setAllRGB( RGB(0,0,255) );
-    HAL_Delay(200);
-	led_setAllRGB( RGB(0,0,0) );
-	HAL_IWDG_Refresh( &iwdg );
+//    HAL_Delay(200);
+//	led_setAllRGB( RGB(0,0,0) );
+	if( !bsp_power_isExtPowerOnline() ){
+		bsp_power_ReleasePower();
+	}
+	FeedGlobalWatchdog();
+	
+	bsp_InitE22();
+	_RC_bsp_RecoverFromUpgradeMode();
+	
+	while(1){
+		FeedGlobalWatchdog();
+	}
 	
 	if( MountFilesystem() == true ){
 //		PRINT_INF(	"List files:" );
@@ -827,14 +863,15 @@ int main(void)
 		float usb_volt = bsp_power_GetExtPowerVoltage();
 		PRINT_INF(	"USB voltage = %.2fV", usb_volt );
 		if( usb_volt>3.0f && usb_volt<7.0f ){
+			USB_OTG_BSP_EnableInterrupt( NULL );
 			while( USB_OTG() ){
-				HAL_IWDG_Refresh( &iwdg );
+				FeedGlobalWatchdog();
 				if( IsKeyFilesPresent() 
-				&& !USBD_USR_IsStorageActive() 
+				&& !USBD_USR_IsStorageActive()
 				&& HAL_GetTick() > 5000
 				){
-					USB_OTG_BSP_DisableInterrupt();
-					HAL_Delay(500);
+					USB_OTG_BSP_DisableInterrupt( NULL );
+					HAL_Delay(100);
 					// PRINT_INF("Upgrade now");
 					// Try to upgrade with new file
 
@@ -845,7 +882,7 @@ int main(void)
 						LaunchApp1();
 					}else{
 						PRINT_ERR("Upgrade failed");
-						USB_OTG_BSP_EnableInterrupt();
+						USB_OTG_BSP_EnableInterrupt( NULL );
 						continue;
 					}
 					break;
@@ -853,6 +890,7 @@ int main(void)
 				if( !bsp_power_isExtPowerOnline() ){
 					bsp_power_ReleasePower();
 				}
+				RC_SimpleConnection( MAIN_STA_USB_STORAGE );
 			}
 			
 //			HAL_Delay(200);
@@ -893,7 +931,10 @@ int main(void)
 			float usb_volt = bsp_power_GetExtPowerVoltage();
 			PRINT_INF(	"USB voltage = %.2fV", usb_volt );
 			if( usb_volt>3.0f && usb_volt<7.0f ){
-				while( USB_OTG() );
+				while( USB_OTG() ){
+					RC_SimpleConnection( MAIN_STA_USB_STORAGE );
+					FeedGlobalWatchdog();
+				}
 			}
 		}
 		// Try to run app without SD card.
@@ -909,7 +950,11 @@ int main(void)
 		HAL_Delay(150);
 		led_setAllRGB( RGB(0,0,0) );
 		HAL_Delay(150);
-		HAL_IWDG_Refresh( &iwdg );
+		FeedGlobalWatchdog();
+		RC_SimpleConnection( MAIN_STA_BL_NOAPP );
+		if( !bsp_power_isExtPowerOnline() ){
+			bsp_power_ReleasePower();
+		}
     }
 }
 
@@ -1353,6 +1398,8 @@ void HAL_MspInit(void)
 
     HAL_NVIC_SetPriorityGrouping(NVIC_PRIORITYGROUP_4);
 
+    HAL_NVIC_SetPriority(USART1_IRQn, 1, 0);
+	
     HAL_NVIC_SetPriority(MemoryManagement_IRQn, 0, 0);
     HAL_NVIC_SetPriority(BusFault_IRQn, 0, 0);
     HAL_NVIC_SetPriority(UsageFault_IRQn, 0, 0);

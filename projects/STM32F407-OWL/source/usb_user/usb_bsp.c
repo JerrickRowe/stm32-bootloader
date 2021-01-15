@@ -117,13 +117,13 @@ void USB_OTG_BSP_Init(USB_OTG_CORE_HANDLE * pdev)
   /* Configure VBUS Pin */
 
 
-  /* Configure ID pin */
-  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_10;
-  GPIO_InitStructure.GPIO_OType = GPIO_OType_OD;
-  GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;
-  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_100MHz;
-  GPIO_Init(GPIOA, &GPIO_InitStructure);
-  GPIO_PinAFConfig(GPIOA, GPIO_PinSource10, GPIO_AF_OTG1_FS);
+  /* Configure ID pin */ // Used by USART1
+//  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_10;
+//  GPIO_InitStructure.GPIO_OType = GPIO_OType_OD;
+//  GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;
+//  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_100MHz;
+//  GPIO_Init(GPIOA, &GPIO_InitStructure);
+//  GPIO_PinAFConfig(GPIOA, GPIO_PinSource10, GPIO_AF_OTG1_FS);
 
 
   RCC_APB2PeriphClockCmd(RCC_APB2Periph_SYSCFG, ENABLE);
@@ -139,13 +139,13 @@ void USB_OTG_BSP_Init(USB_OTG_CORE_HANDLE * pdev)
   GPIO_InitStructure.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStructure);
   
-  /* Configure ID pin */
-  GPIO_InitStructure.Pin = GPIO_PIN_10;
-  GPIO_InitStructure.Alternate = GPIO_AF10_OTG_FS;
-  GPIO_InitStructure.Mode = GPIO_MODE_AF_OD;
-  GPIO_InitStructure.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
-  GPIO_InitStructure.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStructure);
+  /* Configure ID pin */ // Used by USART1
+//  GPIO_InitStructure.Pin = GPIO_PIN_10;
+//  GPIO_InitStructure.Alternate = GPIO_AF10_OTG_FS;
+//  GPIO_InitStructure.Mode = GPIO_MODE_AF_OD;
+//  GPIO_InitStructure.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+//  GPIO_InitStructure.Pull = GPIO_NOPULL;
+//  HAL_GPIO_Init(GPIOA, &GPIO_InitStructure);
 
   __HAL_RCC_SYSCFG_CLK_ENABLE();
   __HAL_RCC_USB_OTG_FS_CLK_ENABLE();

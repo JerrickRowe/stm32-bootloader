@@ -19,9 +19,7 @@ extern "C"{
 	
 #include <stdint.h>
 #include <stdio.h>
-
 #include "stm32f4xx.h"
-#include "bsp_State.h"
 
 
 #define	UART1_FIFO_EN	1
@@ -105,6 +103,13 @@ void bsp_InitE22AndUart1(void);
 void E22SetPublicConfigure(void);
 
 void E22_Config_Write( uint8_t*, size_t );
+
+void _RC_bsp_RecoverFromUpgradeMode( void );
+
+void _RC_bsp_SendNByte( uint16_t *pData, int n );
+uint32_t bsp_E22_GetLastRxTimestamp( void );
+uint32_t bsp_E22_GetIncomingDataCnt( void );
+void bsp_E22_ClearIncomingData( void );
 
 #ifdef __cplusplus
 }
