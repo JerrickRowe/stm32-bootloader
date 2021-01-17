@@ -23,8 +23,8 @@
 
 #define SD_DATATIMEOUT (150U) /* ms */
 
-#define SDMMC_IRQ_PRIO  1
-#define SD_DMA_IRQ_PRIO 2
+#define SDMMC_IRQ_PRIO  2
+#define SD_DMA_IRQ_PRIO 3
 
 #define SDMMC_HAL_TIMEOUT (1000000)
 

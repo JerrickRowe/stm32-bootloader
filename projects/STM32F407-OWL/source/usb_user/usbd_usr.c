@@ -83,6 +83,7 @@
 static int found_host;
 static int is_connected;
 static uint32_t operation_timestamp = 0;
+static uint32_t init_timestamp = 0;
 
 /* Points to the DEVICE_PROP structure of current device */
 /* The purpose of this register is to speed up the execution */
@@ -133,7 +134,8 @@ USBD_Usr_cb_TypeDef USR_cb = {
 */
 void USBD_USR_Init(void)
 {
-	operation_timestamp = GET_TIME_MS();
+    operation_timestamp = GET_TIME_MS();
+    init_timestamp = GET_TIME_MS();
     PRINT_INF("USBD user init");
 }
 
@@ -177,7 +179,7 @@ void USBD_USR_DeviceConfigured(void){
 * @retval None
 */
 void USBD_USR_DeviceSuspended(void){
-//	is_connected = 0;
+	is_connected = 0;
 	operation_timestamp = GET_TIME_MS();
     PRINT_INF("USB device suspended");
 }
@@ -227,7 +229,9 @@ int USBD_USR_IsReleased( void ){
 	if( is_connected ){
 		return 0;
 	}
-	if( operation_timestamp && GET_TIME_MS()-operation_timestamp > 1500 ){
+	if( (operation_timestamp && GET_TIME_MS()-operation_timestamp > 1500)
+  &&  (init_timestamp && GET_TIME_MS()-init_timestamp > 6000 )
+  ){
 		return 1;
 	}
 	return 0;

@@ -46,12 +46,12 @@ uint8_t BSP_SD_Init(void)
 
     /* SD interface configuration */
     hsd1.Instance                 = SDIO;
-    hsd1.Init.ClockEdge           = SDIO_CLOCK_EDGE_RISING;
+    hsd1.Init.ClockEdge           = SDIO_CLOCK_EDGE_FALLING;
     hsd1.Init.ClockBypass         = SDIO_CLOCK_BYPASS_DISABLE;
     hsd1.Init.ClockPowerSave      = SDIO_CLOCK_POWER_SAVE_DISABLE;
     hsd1.Init.BusWide             = SDIO_BUS_WIDE_1B;
     hsd1.Init.HardwareFlowControl = SDIO_HARDWARE_FLOW_CONTROL_ENABLE;
-    hsd1.Init.ClockDiv            = 8;
+    hsd1.Init.ClockDiv            = 11;
 
     for(tries = 0; tries < 5; ++tries)
     {

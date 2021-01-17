@@ -707,11 +707,6 @@ static bool USB_OTG( void ){
 			return true;
 		}
 		case RUNNING:{
-			if( USBD_USR_IsStorageActive() ){
-				led_toggling( RGB(0,0,50), RGB(0,0,100), 50 );
-			}else{
-				led_setAllRGB( RGB(0,0,50) );
-			}
 			if( !USBD_USR_IsReleased() ){
 				return true;
 			}
@@ -721,8 +716,8 @@ static bool USB_OTG( void ){
 			break;
 		}
 	}
-	PRINT_INF( "USB-OTG released" );
-	led_setAllRGB( RGB(0,0,0) );
+	//PRINT_INF( "USB-OTG released" );
+	//led_setAllRGB( RGB(0,0,0) );
 	// float usb_voltage;
 	// do{
 	// 	usb_voltage = bsp_power_GetExtPowerVoltage();
@@ -730,14 +725,7 @@ static bool USB_OTG( void ){
 	// 	HAL_Delay(200);
 	// }while( usb_voltage > 3.0f );
 	// led_setAllRGB( RGB(0,0,0) );
-	if( !USBD_USR_HostNotFound() ){
-		HAL_Delay(100);
-		bsp_power_ReleasePower();
-		HAL_Delay(100);
-		PRINT_INF( "Failed to release power" );
-	}
-
-	sta = STARTUP;
+	//sta = STARTUP;
 	return false;
 }
 
@@ -851,9 +839,12 @@ int main(void)
 	bsp_InitE22();
 	_RC_bsp_RecoverFromUpgradeMode();
 	
-	while(1){
-		FeedGlobalWatchdog();
-	}
+//	while(1){
+//		FeedGlobalWatchdog();
+////		RC_SimpleConnection( MAIN_STA_BL_UPGRADING );
+////		RC_SimpleConnection( MAIN_STA_BL_NOAPP );
+//		RC_SimpleConnection( MAIN_STA_USB_STORAGE );
+//	}
 	
 	if( MountFilesystem() == true ){
 //		PRINT_INF(	"List files:" );
@@ -889,6 +880,11 @@ int main(void)
 				}
 				if( !bsp_power_isExtPowerOnline() ){
 					bsp_power_ReleasePower();
+				}
+				if( USBD_USR_IsStorageActive() ){
+					led_toggling( RGB(0,0,50), RGB(0,0,100), 50 );
+				}else{
+					led_setAllRGB( RGB(0,0,50) );
 				}
 				RC_SimpleConnection( MAIN_STA_USB_STORAGE );
 			}
@@ -946,12 +942,18 @@ int main(void)
 	// Fatal: no app, no backup file available, upgrade is needed.
     PRINT_INF("No application available.");
     while(1){
-		led_setAllRGB( RGB(20,20,20) );
-		HAL_Delay(150);
-		led_setAllRGB( RGB(0,0,0) );
-		HAL_Delay(150);
+		if( USB_OTG() ){
+			RC_SimpleConnection( MAIN_STA_USB_STORAGE );
+			if( USBD_USR_IsStorageActive() ){
+				led_toggling( RGB(0,0,50), RGB(0,0,100), 50 );
+			}else{
+				led_setAllRGB( RGB(0,0,50) );
+			}
+		}else{
+			led_toggling( RGB(20,20,20), RGB(0,0,0), 150 );
+			RC_SimpleConnection( MAIN_STA_BL_NOAPP );
+		}
 		FeedGlobalWatchdog();
-		RC_SimpleConnection( MAIN_STA_BL_NOAPP );
 		if( !bsp_power_isExtPowerOnline() ){
 			bsp_power_ReleasePower();
 		}
@@ -1354,8 +1356,8 @@ void SystemClock_Config(void)
                                   RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
     RCC_ClkInitStruct.SYSCLKSource   = RCC_SYSCLKSOURCE_PLLCLK;
     RCC_ClkInitStruct.AHBCLKDivider  = LL_RCC_SYSCLK_DIV_1;
-    RCC_ClkInitStruct.APB1CLKDivider = LL_RCC_APB1_DIV_4;
-    RCC_ClkInitStruct.APB2CLKDivider = LL_RCC_APB2_DIV_2;
+    RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV4;
+    RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV2;
 
     if(HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_4) != HAL_OK)
     {
@@ -1398,7 +1400,7 @@ void HAL_MspInit(void)
 
     HAL_NVIC_SetPriorityGrouping(NVIC_PRIORITYGROUP_4);
 
-    HAL_NVIC_SetPriority(USART1_IRQn, 1, 0);
+    HAL_NVIC_SetPriority(USART1_IRQn, 3, 0);
 	
     HAL_NVIC_SetPriority(MemoryManagement_IRQn, 0, 0);
     HAL_NVIC_SetPriority(BusFault_IRQn, 0, 0);

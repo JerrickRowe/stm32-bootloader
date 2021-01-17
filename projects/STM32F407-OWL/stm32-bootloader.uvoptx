@@ -354,7 +354,7 @@
         <bEvRecOn>1</bEvRecOn>
         <bSchkAxf>0</bSchkAxf>
         <bTchkAxf>0</bTchkAxf>
-        <nTsel>6</nTsel>
+        <nTsel>5</nTsel>
         <sDll></sDll>
         <sDllPa></sDllPa>
         <sDlgDll></sDlgDll>
@@ -376,7 +376,7 @@
         <SetRegEntry>
           <Number>0</Number>
           <Key>DLGTARM</Key>
-          <Name>(1010=902,48,1352,605,1)(1007=1785,137,1972,412,0)(1008=-1,-1,-1,-1,0)(1009=1800,153,2058,741,0)(1012=-1,-1,-1,-1,0)</Name>
+          <Name>(1010=480,971,930,1528,1)(1007=1256,137,1443,412,0)(1008=-1,-1,-1,-1,0)(1009=1185,153,1443,741,0)(1012=-1,-1,-1,-1,0)</Name>
         </SetRegEntry>
         <SetRegEntry>
           <Number>0</Number>
@@ -403,34 +403,34 @@
         <Bp>
           <Number>0</Number>
           <Type>0</Type>
-          <LineNumber>1054</LineNumber>
+          <LineNumber>89</LineNumber>
           <EnabledFlag>1</EnabledFlag>
-          <Address>134232816</Address>
+          <Address>134261788</Address>
           <ByteObject>0</ByteObject>
           <HtxType>0</HtxType>
           <ManyObjects>0</ManyObjects>
           <SizeOfObject>0</SizeOfObject>
           <BreakByAccess>0</BreakByAccess>
           <BreakIfRCount>1</BreakIfRCount>
-          <Filename>.\source\bsp_E22.c</Filename>
+          <Filename>.\source\usb_user\usb_bsp.c</Filename>
           <ExecCommand></ExecCommand>
-          <Expression>\\stm32_bootloader\source/bsp_E22.c\1054</Expression>
+          <Expression>\\stm32_bootloader\source/usb_user/usb_bsp.c\89</Expression>
         </Bp>
         <Bp>
           <Number>1</Number>
           <Type>0</Type>
-          <LineNumber>858</LineNumber>
+          <LineNumber>135</LineNumber>
           <EnabledFlag>1</EnabledFlag>
-          <Address>0</Address>
+          <Address>134257272</Address>
           <ByteObject>0</ByteObject>
           <HtxType>0</HtxType>
           <ManyObjects>0</ManyObjects>
           <SizeOfObject>0</SizeOfObject>
           <BreakByAccess>0</BreakByAccess>
-          <BreakIfRCount>0</BreakIfRCount>
-          <Filename>.\source\main.c</Filename>
+          <BreakIfRCount>1</BreakIfRCount>
+          <Filename>..\..\lib\STM32_USB_Device_Library\Core\src\usbd_core.c</Filename>
           <ExecCommand></ExecCommand>
-          <Expression></Expression>
+          <Expression>\\stm32_bootloader\../../lib/STM32_USB_Device_Library/Core/src/usbd_core.c\135</Expression>
         </Bp>
       </Breakpoint>
       <WatchWindow1>
@@ -478,6 +478,36 @@
           <count>8</count>
           <WinNumber>1</WinNumber>
           <ItemText>timestamp,0x0A</ItemText>
+        </Ww>
+        <Ww>
+          <count>9</count>
+          <WinNumber>1</WinNumber>
+          <ItemText>&amp;rc_usart_handle.Instance-&gt;CR1</ItemText>
+        </Ww>
+        <Ww>
+          <count>10</count>
+          <WinNumber>1</WinNumber>
+          <ItemText>pData[cnt]</ItemText>
+        </Ww>
+        <Ww>
+          <count>11</count>
+          <WinNumber>1</WinNumber>
+          <ItemText>APBPrescTable</ItemText>
+        </Ww>
+        <Ww>
+          <count>12</count>
+          <WinNumber>1</WinNumber>
+          <ItemText>((RCC_ClkInitStruct-&gt;APB2CLKDivider) &lt;&lt; 3U)</ItemText>
+        </Ww>
+        <Ww>
+          <count>13</count>
+          <WinNumber>1</WinNumber>
+          <ItemText>SystemCoreClock,0x0A</ItemText>
+        </Ww>
+        <Ww>
+          <count>14</count>
+          <WinNumber>1</WinNumber>
+          <ItemText>Timeout,0x0A</ItemText>
         </Ww>
       </WatchWindow1>
       <MemoryWindow1>
@@ -527,7 +557,7 @@
         <aLa>0</aLa>
         <aPa1>0</aPa1>
         <AscS4>0</AscS4>
-        <aSer4>1</aSer4>
+        <aSer4>0</aSer4>
         <StkLoc>0</StkLoc>
         <TrcWin>0</TrcWin>
         <newCpu>0</newCpu>
@@ -548,16 +578,12 @@
       <pMultCmdsp></pMultCmdsp>
       <SystemViewers>
         <Entry>
-          <Name>System Viewer\CRC</Name>
-          <WinId>35905</WinId>
-        </Entry>
-        <Entry>
           <Name>System Viewer\GPIOA</Name>
           <WinId>35903</WinId>
         </Entry>
         <Entry>
-          <Name>System Viewer\GPIOD</Name>
-          <WinId>35902</WinId>
+          <Name>System Viewer\RCC</Name>
+          <WinId>35905</WinId>
         </Entry>
         <Entry>
           <Name>System Viewer\SDIO</Name>
@@ -1792,7 +1818,7 @@
 
   <Group>
     <GroupName>fs</GroupName>
-    <tvExp>1</tvExp>
+    <tvExp>0</tvExp>
     <tvExpOptDlg>0</tvExpOptDlg>
     <cbSel>0</cbSel>
     <RteFlg>0</RteFlg>
@@ -2076,7 +2102,7 @@
 
   <Group>
     <GroupName>usb_user</GroupName>
-    <tvExp>1</tvExp>
+    <tvExp>0</tvExp>
     <tvExpOptDlg>0</tvExpOptDlg>
     <cbSel>0</cbSel>
     <RteFlg>0</RteFlg>
