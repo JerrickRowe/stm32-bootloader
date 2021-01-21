@@ -67,9 +67,9 @@
 /* Private variables ---------------------------------------------------------*/
 static uint8_t BTNcounter = 0;
 
-#define VER		0
+#define VER		1
 
-#define REV		1
+#define REV		0
 
 #define PRJ_STR	"FlyFire-bootloader"
 
@@ -583,6 +583,14 @@ bool UpgradeFromSD( void ){
 	}
 	PRINT_RAW("DONE\r\n");
 
+	if( RC_Presented() ){
+		uint32_t timestamp = HAL_GetTick();
+		PRINT_INF("Send upgrade status to RC" );
+		while( HAL_GetTick() - timestamp < 1000 ){
+			RC_SimpleConnection( MAIN_STA_BL_UPGRADING );
+		}
+	}
+
 //	UINT br = 0;
 //	static uint8_t buff[512];
 //	res = f_read( &upgrade_file, buff, 512, &br );
@@ -841,7 +849,6 @@ int main(void)
 	
 //	while(1){
 //		FeedGlobalWatchdog();
-////		RC_SimpleConnection( MAIN_STA_BL_UPGRADING );
 ////		RC_SimpleConnection( MAIN_STA_BL_NOAPP );
 //		RC_SimpleConnection( MAIN_STA_USB_STORAGE );
 //	}
