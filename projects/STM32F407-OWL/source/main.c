@@ -327,6 +327,9 @@ void Copy_App2_To_App1( void ){
 
 void FeedGlobalWatchdog( void ){
 	HAL_IWDG_Refresh( &iwdg );
+	if( !bsp_power_isExtPowerOnline() ){
+		bsp_power_ReleasePower();
+	}
 }
 
 bool Copy_File_To_App1( FIL* fp ){
@@ -599,7 +602,9 @@ bool UpgradeFromSD( void ){
 		return false;
 	}
 	// Generate RC upgrade file
-	if( f_size(&upgrade_file) > OWL_UPGRADE_FILESIZE ){
+	if( RC_Presented()
+	&&	f_size(&upgrade_file) > OWL_UPGRADE_FILESIZE
+	){
 		GenerateRC_UpgradeFile( &upgrade_file );
 	}
 	if( Copy_File_To_App1( &upgrade_file ) == false ){
@@ -817,9 +822,6 @@ int main(void)
 	Console_Init();
 	
 	while( HAL_GetTick() < 50 ){
-		if( !bsp_power_isExtPowerOnline() ){
-			bsp_power_ReleasePower();
-		}
 		FeedGlobalWatchdog();
 	}
 	
@@ -839,9 +841,6 @@ int main(void)
 	led_setAllRGB( RGB(0,0,255) );
 //    HAL_Delay(200);
 //	led_setAllRGB( RGB(0,0,0) );
-	if( !bsp_power_isExtPowerOnline() ){
-		bsp_power_ReleasePower();
-	}
 	FeedGlobalWatchdog();
 	
 	bsp_InitE22();
@@ -961,9 +960,6 @@ int main(void)
 			RC_SimpleConnection( MAIN_STA_BL_NOAPP );
 		}
 		FeedGlobalWatchdog();
-		if( !bsp_power_isExtPowerOnline() ){
-			bsp_power_ReleasePower();
-		}
     }
 }
 
