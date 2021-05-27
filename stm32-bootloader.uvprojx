@@ -433,6 +433,11 @@
               <FileType>1</FileType>
               <FilePath>.\projects\STM32F407-OWL\source\bsp_power.c</FilePath>
             </File>
+            <File>
+              <FileName>bsp_E22.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\projects\STM32F407-OWL\source\bsp_E22.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -442,6 +447,11 @@
               <FileName>LED_Serial.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\projects\STM32F407-OWL\source\LED_Serial.c</FilePath>
+            </File>
+            <File>
+              <FileName>remote_control.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\projects\STM32F407-OWL\source\remote_control.c</FilePath>
             </File>
           </Files>
         </Group>
