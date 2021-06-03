@@ -30,7 +30,7 @@
 #define STM32F4
 
 /** Check application checksum on startup */
-#define USE_CHECKSUM 1
+#define USE_CHECKSUM 0
 
 /** Enable write protection after performing in-app-programming */
 #define USE_WRITE_PROTECTION 0
@@ -39,9 +39,9 @@
 #define SET_VECTOR_TABLE 1
 
 #ifdef STM32L4
-#define OBL_RESET_IS_AVAILABLE	1
+#define OBL_RESET_IS_AVAILABLE 1
 #else
-#define OBL_RESET_IS_AVAILABLE	0
+#define OBL_RESET_IS_AVAILABLE 0
 #endif
 
 /** Clear reset flags
@@ -52,7 +52,6 @@
  */
 #define CLEAR_RESET_FLAGS 1
 
-
 /** Start address of application space in flash */
 #define APP_ADDRESS 0x08020000u
 
@@ -60,21 +59,18 @@
 #define END_ADDRESS (uint32_t)0x0807FFFF
 
 /** Start address of application checksum in flash */
-#define CRC_ADDRESS (uint32_t)(END_ADDRESS-3)
+#define CRC_ADDRESS (uint32_t)(END_ADDRESS - 3)
 
 /** Address of System Memory (ST Bootloader) */
 #define SYSMEM_ADDRESS (uint32_t)0x1FFF0000
 
+#define APP1_ADDRESS  (0x08020000u)
+#define APP1_SIZE     (0xC0000u - 4u)
+#define APP1_CRC_ADDR (APP1_ADDRESS + APP1_SIZE)
 
-
-
-#define APP1_ADDRESS	(0x08020000u)
-#define APP1_SIZE		(0xC0000u-4u)
-#define APP1_CRC_ADDR	(APP1_ADDRESS+APP1_SIZE)
-
-#define APP2_ADDRESS	(0x080E0000u)
-#define APP2_SIZE		(0x20000u-4u)
-#define APP2_CRC_ADDR	(APP2_ADDRESS+APP2_SIZE)
+#define APP2_ADDRESS  (0x080E0000u)
+#define APP2_SIZE     (0x20000u - 4u)
+#define APP2_CRC_ADDR (APP2_ADDRESS + APP2_SIZE)
 
 /** @} */
 /* End of configuration ------------------------------------------------------*/
@@ -97,8 +93,8 @@
 #define FLASH_PAGE_NBPERBANK (256)
 
 /* MCU RAM information (to check whether flash contains valid application) */
-#define RAM_BASE SRAM1_BASE     /*!< Start address of RAM */
-#define RAM_SIZE 0x20000 /*!< RAM size in bytes */
+#define RAM_BASE SRAM1_BASE /*!< Start address of RAM */
+#define RAM_SIZE 0x20000    /*!< RAM size in bytes */
 
 /* Enumerations --------------------------------------------------------------*/
 /** Bootloader error codes */
@@ -147,7 +143,7 @@ uint8_t Bootloader_IsApp2ChecksumValid(void);
 uint8_t Bootloader_CheckForApp2(void);
 void    Bootloader_JumpToApp2(void);
 
-void    Bootloader_JumpToSysMem(void);
+void Bootloader_JumpToSysMem(void);
 
 uint32_t Bootloader_GetVersion(void);
 
