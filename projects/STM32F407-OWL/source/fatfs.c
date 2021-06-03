@@ -18,18 +18,16 @@
 
 /* Variables -----------------------------------------------------------------*/
 char  SDPath[4]; /* SD logical drive path */
-FATFS SDFatFs;   /* File system object for SD logical drive */
-FIL   SDFile;    /* File object for SD */
+FATFS SDFatFs;	 /* File system object for SD logical drive */
+FIL	  SDFile;	 /* File object for SD */
 
 /* Functions -----------------------------------------------------------------*/
-uint8_t FATFS_Init(void)
-{
-    return FATFS_LinkDriver(&SD_Driver, SDPath);
+uint8_t FATFS_Init(void) {
+	return FATFS_LinkDriver(&SD_Driver, SDPath);
 }
 
-uint8_t FATFS_DeInit(void)
-{
-    return FATFS_UnLinkDriver(SDPath);
+uint8_t FATFS_DeInit(void) {
+	return FATFS_UnLinkDriver(SDPath);
 }
 
 /**
@@ -37,7 +35,6 @@ uint8_t FATFS_DeInit(void)
  * @param  None
  * @retval Time in DWORD
  */
-DWORD get_fattime(void)
-{
-    return (DWORD)0;
+DWORD get_fattime(void) {
+	return (DWORD)0;
 }
