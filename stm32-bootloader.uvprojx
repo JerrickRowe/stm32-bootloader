@@ -337,7 +337,7 @@
             <v6Rtti>0</v6Rtti>
             <VariousControls>
               <MiscControls></MiscControls>
-              <Define>HSE_VALUE=8000000, STM32F407xx, _RTE_, USE_HAL_DRIVER, USE_USB_OTG_FS</Define>
+              <Define>HSE_VALUE=8000000, STM32F407xx, _RTE_, USE_HAL_DRIVER, USE_USB_OTG_FS, DEBUG=0</Define>
               <Undefine></Undefine>
               <IncludePath>.\lib\fatfs;.\lib\stm32-bootloader;.\drivers\STM32F4xx_HAL_Driver\Inc;.\projects\STM32F407-OWL\include;.\projects\STM32F407-OWL\source;.\projects\STM32F407-OWL\RTE;.\drivers\STM32F4xx_HAL_Driver\Config;.\projects\STM32F407-OWL\RTE\_Release;.\drivers\CMSIS\Device\ST\STM32F4xx\Include;.\drivers\CMSIS\Include;.\lib\fatfs\ff14\source;.\lib\fatfs\ff14_port;.\projects\STM32F407-OWL;.\lib\STM32_USB_Device_Library\Core\inc;.\lib\STM32_USB_Device_Library\Class\msc\inc;.\lib\STM32_USB_OTG_Driver\inc;.\projects\STM32F407-OWL\source\usb_user;.\lib\Debug</IncludePath>
             </VariousControls>

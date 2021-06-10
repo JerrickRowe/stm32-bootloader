@@ -83,6 +83,8 @@ E22_T g_tE22Other;	//降落伞端的E22结构体   可以进行远程配置。�
 static UART_T  g_tUart1;
 static uint8_t g_TxBuf1[UART1_TX_BUF_SIZE]; /* 发送缓冲区 */
 static uint8_t g_RxBuf1[UART1_RX_BUF_SIZE]; /* 接收缓冲区 */
+static uint32_t RxTimestamp;
+static uint32_t dataCnt = 0;
 #endif
 
 static void UartVarInit(void);
@@ -946,6 +948,7 @@ void _RC_bsp_ConfigUpgradeMode(void) {
 	/*恢复E22工作模式为一般模式透明传输*/
 	E22SetWorkMode(0);
 	WAIT_MS(200);
+	dataCnt = 0;// 防止RC_SimpleConnection认为遥控器在线
 }
 
 void _RC_bsp_RecoverFromUpgradeMode(void) {
@@ -963,10 +966,9 @@ void _RC_bsp_RecoverFromUpgradeMode(void) {
 	/*恢复E22工作模式为一般模式透明传输*/
 	E22SetWorkMode(0);
 	WAIT_MS(200);
+	dataCnt = 0; // 防止RC_SimpleConnection认为遥控器在线
 }
 
-static uint32_t RxTimestamp;
-static uint32_t dataCnt = 0;
 void			USART1_IRQHandler(void) {
 	   FeedGlobalWatchdog();
 	   if(__HAL_USART_GET_FLAG(&rc_usart_handle, USART_FLAG_RXNE)) {
