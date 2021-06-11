@@ -58,3 +58,4 @@ cmake-build-debug
 # *.uvprojx
 BC4Key.txt
 
+DebugConfig/Debug_STM32F407VGTx.dbgconf

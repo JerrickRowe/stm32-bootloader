@@ -63,14 +63,17 @@
 #define PRINT_ERR(fmt, ...)
 #endif
 
-/* Private variables ---------------------------------------------------------*/
+/* Private configurations ----------------------------------------------------*/
 static uint8_t BTNcounter = 0;
 
 #define VER 1
 
-#define REV 0
+#define REV 1
 
 #define PRJ_STR "FlyFire-bootloader"
+
+//#define CONSOLE_IN_UART2	1
+#define CONSOLE_IN_UART6	1
 
 /* External variables --------------------------------------------------------*/
 char	   SDPath[4] = "SD:"; /* SD logical drive path */
@@ -1236,9 +1239,9 @@ void					   Console_Init(void) {
 	  RCC_PeriphCLKInitTypeDef clk_init;
 	  GPIO_InitTypeDef		   GPIO_InitStructure;
 
+#if CONSOLE_IN_UART2
 	  __HAL_RCC_GPIOD_CLK_ENABLE();
 	  __HAL_RCC_USART2_CLK_ENABLE();
-
 	  handle->Instance		  = USART2;
 	  handle->State			  = HAL_USART_STATE_RESET;
 	  handle->Init.BaudRate	  = 115200;
@@ -1261,6 +1264,35 @@ void					   Console_Init(void) {
 	  GPIO_InitStructure.Alternate = GPIO_AF7_USART2;
 	  GPIO_InitStructure.Pull	   = GPIO_PULLUP;
 	  HAL_GPIO_Init(GPIOD, &GPIO_InitStructure);
+#endif
+
+#if CONSOLE_IN_UART6
+	  __HAL_RCC_GPIOC_CLK_ENABLE();
+	  __HAL_RCC_USART6_CLK_ENABLE();
+	  handle->Instance		  = USART6;
+	  handle->State			  = HAL_USART_STATE_RESET;
+	  handle->Init.BaudRate	  = 115200;
+	  handle->Init.StopBits	  = USART_STOPBITS_1;
+	  handle->Init.WordLength = USART_WORDLENGTH_8B;
+	  handle->Init.Parity	  = USART_PARITY_NONE;
+	  handle->Init.Mode		  = USART_MODE_TX_RX;
+	  HAL_USART_Init(&console_usart_handle);
+
+	  GPIO_InitStructure.Pin	   = GPIO_PIN_6;  // Tx
+	  GPIO_InitStructure.Mode	   = GPIO_MODE_AF_PP;
+	  GPIO_InitStructure.Speed	   = GPIO_SPEED_FAST;
+	  GPIO_InitStructure.Alternate = GPIO_AF8_USART6;
+	  GPIO_InitStructure.Pull	   = GPIO_PULLUP;
+	  HAL_GPIO_Init(GPIOC, &GPIO_InitStructure);
+
+	  GPIO_InitStructure.Pin	   = GPIO_PIN_7;  // Rx
+	  GPIO_InitStructure.Mode	   = GPIO_MODE_AF_OD;
+	  GPIO_InitStructure.Speed	   = GPIO_SPEED_FAST;
+	  GPIO_InitStructure.Alternate = GPIO_AF8_USART6;
+	  GPIO_InitStructure.Pull	   = GPIO_PULLUP;
+	  HAL_GPIO_Init(GPIOC, &GPIO_InitStructure);
+#endif
+
 }
 
 void Console_DeInit(void) {
